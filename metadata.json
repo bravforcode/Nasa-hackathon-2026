@@ -1,0 +1,6 @@
+{
+  "name": "LUNAR RELAY OS",
+  "description": "Mission Continuity Intelligence for the Lunar South Pole — communication network design, rover route planning, power/return margin calculation, and instant failure recovery.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
