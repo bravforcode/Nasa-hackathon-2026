@@ -100,3 +100,25 @@
   background: radial-gradient(circle at 50% 40%, rgba(14, 25, 45, 0.5) 0%, rgba(2, 4, 10, 0.95) 85%);
 }
 
+/* Accessibility: honor reduced-motion preference (impeccable rule) */
+@media (prefers-reduced-motion: reduce) {
+  .animate-ping,
+  .animate-pulse,
+  .animate-pulse-glow,
+  .animate-dash-slow {
+    animation: none !important;
+  }
+  .transition-transform,
+  .transition-opacity,
+  .transition-all {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Keyboard focus visibility for icon-only controls */
+button:focus-visible,
+[role='button']:focus-visible {
+  outline: 2px solid #4c8dff;
+  outline-offset: 2px;
+}
+

@@ -30,6 +30,8 @@ interface ExplainabilityPanelProps {
   cmrInfo?: { count: number; titles: string[]; fetchedAt: string } | { error: true } | null;
   /** Live computed state for the AI/deterministic explainer. */
   explanationInput?: ExplanationState;
+  /** Restore the default relay/dead-zone layout. */
+  onResetLayout?: () => void;
   onExecutePlan: (planId: string) => void;
 }
 
@@ -41,6 +43,7 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
   donkiStatus,
   cmrInfo,
   explanationInput,
+  onResetLayout,
   onExecutePlan,
 }) => {
   const [activeTab, setActiveTab] = useState<'score' | 'sources' | 'assumptions' | 'sensitivity'>('score');
@@ -56,6 +59,29 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
     } finally {
       setAiLoading(false);
     }
+  };
+
+  // Export the full live mission state as a JSON mission report (real utility:
+  // judges/operators can diff plans or feed the file to other tools).
+  const handleExport = () => {
+    const report = {
+      tool: 'LUNAR RELAY OS',
+      schema: 'lunar-relay-plan/v1',
+      generatedAt: new Date().toISOString(),
+      region: explanationInput ?? null,
+      selectedPlan,
+      allPlans,
+      liveData: { donkiStatus, cmrInfo },
+    };
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `lunar-relay-plan-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   };
 
   if (!isOpen) return null;
@@ -337,8 +363,8 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
                     <p className="text-[11px] text-slate-200 leading-relaxed font-sans">{aiResult.text}</p>
                     <div className={`text-[9px] font-bold uppercase ${aiResult.source === 'gemini' ? 'text-emerald-400' : 'text-amber-400'}`}>
                       {aiResult.source === 'gemini'
-                        ? `Source: Gemini (${explanationInput.scenario} state)`
-                        : 'Source: deterministic model explainer (no Gemini key — set VITE_GEMINI_API_KEY)'}
+                        ? `Source: Gemini free tier (${explanationInput.scenario} state)`
+                        : 'Source: local rule-based model — free, no API key (add VITE_GEMINI_API_KEY for Gemini free tier)'}
                     </div>
                   </>
                 )}
@@ -479,8 +505,27 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
         )}
       </div>
 
-      {/* Footer Action */}
+      {/* Footer Actions */}
       <div className="p-4 bg-white/5 border-t border-white/10 flex justify-between items-center backdrop-blur-md">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExport}
+            className="font-mono text-xs text-blue-300 hover:text-white px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500/20 transition-all cursor-pointer"
+            title="Download the full live mission state as JSON"
+          >
+            Export Plan (JSON)
+          </button>
+          {onResetLayout && (
+            <button
+              onClick={onResetLayout}
+              className="font-mono text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
+              title="Restore default relay/dead-zone layout"
+            >
+              Reset Layout
+            </button>
+          )}
+        </div>
+
         <button
           onClick={onClose}
           className="font-mono text-xs text-slate-400 hover:text-white px-3 py-1.5 transition-colors cursor-pointer"

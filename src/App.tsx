@@ -47,17 +47,57 @@ export function App() {
   // Navigation
   const [activeTab, setActiveTab] = useState<NavigationTab>('region');
 
+  // Saved session (localStorage) — read once before any state that restores it
+  const loadSaved = (): Partial<{
+    relays: RelayNode[];
+    deadZones: DeadZone[];
+    regionId: string;
+    scenario: FailureScenarioType;
+  }> | null => {
+    try {
+      const raw = localStorage.getItem('lunar-relay-os-v1');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  };
+  const saved = useMemo(loadSaved, []);
+
   // Core State
-  const [activeScenario, setActiveScenario] = useState<FailureScenarioType>('relay_failure'); // Defaults to the 72h relay failure demo
+  const [activeScenario, setActiveScenario] = useState<FailureScenarioType>(saved?.scenario ?? 'relay_failure'); // Defaults to the 72h relay failure demo
   const [selectedPlanId, setSelectedPlanId] = useState<PlanOption>('balanced');
   const [sliderValue, setSliderValue] = useState<number>(50);
   const [isMitigationActive, setIsMitigationActive] = useState<boolean>(false);
-  const [selectedRegion, setSelectedRegion] = useState<LunarRegion>(LUNAR_REGIONS[0]);
+  const [selectedRegion, setSelectedRegion] = useState<LunarRegion>(
+    LUNAR_REGIONS.find(r => r.id === saved?.regionId) ?? LUNAR_REGIONS[0]
+  );
 
-  // Network & Site data
-  const [relays, setRelays] = useState<RelayNode[]>(INITIAL_RELAYS);
+  // Network & Site data (restored from localStorage when available)
+  const [relays, setRelays] = useState<RelayNode[]>(saved?.relays ?? INITIAL_RELAYS);
   const [scienceSites, setScienceSites] = useState<ScienceSite[]>(SCIENCE_SITES);
-  const [deadZones, setDeadZones] = useState<DeadZone[]>(INITIAL_DEAD_ZONES);
+  const [deadZones, setDeadZones] = useState<DeadZone[]>(saved?.deadZones ?? INITIAL_DEAD_ZONES);
+
+  // Persist layout + scenario whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('lunar-relay-os-v1', JSON.stringify({
+        relays,
+        deadZones,
+        regionId: selectedRegion.id,
+        scenario: activeScenario,
+      }));
+    } catch {
+      /* storage unavailable — session-only mode */
+    }
+  }, [relays, deadZones, selectedRegion, activeScenario]);
+
+  const handleResetLayout = () => {
+    setRelays(INITIAL_RELAYS);
+    setDeadZones(INITIAL_DEAD_ZONES);
+    setSelectedRegion(LUNAR_REGIONS[0]);
+    setActiveScenario('relay_failure');
+    try { localStorage.removeItem('lunar-relay-os-v1'); } catch { /* noop */ }
+  };
 
   // Live DONKI space weather (fetched only for the space_weather scenario)
   type SepSeverity = { level: SepSeverityLevel; multiplier: number };
@@ -215,6 +255,11 @@ export function App() {
     setRelays(prev => prev.map(r => (r.id === relayId ? { ...r, lat, lon } : r)));
   };
 
+  // Drag a dead zone → update map percentages; coverage geometry follows.
+  const handleMoveDeadZone = (zoneId: string, xPercent: number, yPercent: number) => {
+    setDeadZones(prev => prev.map(d => (d.id === zoneId ? { ...d, xPercent, yPercent } : d)));
+  };
+
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#02040a] text-slate-100 antialiased relative selection:bg-blue-500/30 selection:text-white">
       {/* Ambient Lighting Orbs for Frosted Glass Background */}
@@ -278,6 +323,7 @@ export function App() {
                 isMitigationActive={isMitigationActive}
                 region={selectedRegion}
                 onMoveRelay={handleMoveRelay}
+                onMoveDeadZone={handleMoveDeadZone}
                 onDeployMitigationRelay={() => setIsMitigationActive(true)}
                 onSelectRelay={() => setIsDesignAssistOpen(true)}
               />
@@ -306,6 +352,7 @@ export function App() {
           donkiStatus={sepStatus}
           cmrInfo={cmrInfo}
           explanationInput={explanationInput}
+          onResetLayout={handleResetLayout}
           onExecutePlan={(planId) => {
             setSelectedPlanId(planId as PlanOption);
             setIsBriefingOpen(true);
