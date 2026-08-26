@@ -43,6 +43,8 @@ interface LunarMapProps {
   region?: Pick<LunarRegion, 'centerLat' | 'centerLon'>;
   /** Live geometry update when a relay node is dragged. */
   onMoveRelay?: (relayId: string, lat: number, lon: number) => void;
+  /** Live update when a dead zone is dragged (map percentages). */
+  onMoveDeadZone?: (zoneId: string, xPercent: number, yPercent: number) => void;
   onSelectRelay?: (relay: RelayNode) => void;
   onDeployMitigationRelay?: () => void;
 }
@@ -63,6 +65,7 @@ export const LunarMap: React.FC<LunarMapProps> = ({
   isMitigationActive,
   region,
   onMoveRelay,
+  onMoveDeadZone,
   onSelectRelay,
   onDeployMitigationRelay,
 }) => {
@@ -74,6 +77,7 @@ export const LunarMap: React.FC<LunarMapProps> = ({
   const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
   const [hoveredRelay, setHoveredRelay] = useState<RelayNode | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [dragKind, setDragKind] = useState<'relay' | 'deadzone' | null>(null);
 
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -125,17 +129,23 @@ export const LunarMap: React.FC<LunarMapProps> = ({
     };
   }, [anchorLat, anchorLon]);
 
-  // --- Relay drag handling ---
+  // --- Drag handling (relays -> lat/lon, dead zones -> map %) ---
   const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
-    if (!dragId || !onMoveRelay || !svgRef.current) return;
+    if (!dragId || !svgRef.current) return;
     const rect = svgRef.current.getBoundingClientRect();
     const vx = ((e.clientX - rect.left) / rect.width) * VB_W;
     const vy = ((e.clientY - rect.top) / rect.height) * VB_H;
-    const { lat, lon } = unproject(vx, vy);
-    onMoveRelay(dragId, lat, lon);
+    if (dragKind === 'relay' && onMoveRelay) {
+      const { lat, lon } = unproject(vx, vy);
+      onMoveRelay(dragId, lat, lon);
+    } else if (dragKind === 'deadzone' && onMoveDeadZone) {
+      const xPercent = Math.max(2, Math.min(98, vx / 10));
+      const yPercent = Math.max(2, Math.min(98, vy / 8));
+      onMoveDeadZone(dragId, xPercent, yPercent);
+    }
   };
 
-  const endDrag = () => setDragId(null);
+  const endDrag = () => { setDragId(null); setDragKind(null); };
 
   // Projected positions for every data-backed node.
   const nodePos: Record<string, { x: number; y: number }> = {};
@@ -320,7 +330,18 @@ export const LunarMap: React.FC<LunarMapProps> = ({
               const isMitigated = isMitigationActive && dz.id === 'dzone_2';
 
               return (
-                <g key={dz.id} className="transition-opacity duration-300">
+                <g
+                  key={dz.id}
+                  className="transition-opacity duration-300"
+                  style={{ touchAction: 'none' }}
+                  onPointerDown={(e) => {
+                    if (onMoveDeadZone) {
+                      e.currentTarget.setPointerCapture?.(e.pointerId);
+                      setDragId(dz.id);
+                      setDragKind('deadzone');
+                    }
+                  }}
+                >
                   <ellipse
                     cx={cx}
                     cy={cy}
@@ -471,6 +492,7 @@ export const LunarMap: React.FC<LunarMapProps> = ({
                     if (onMoveRelay && !isApex) {
                       e.currentTarget.setPointerCapture?.(e.pointerId);
                       setDragId(relay.id);
+                      setDragKind('relay');
                     }
                   }}
                   onClick={() => onSelectRelay && onSelectRelay(relay)}
