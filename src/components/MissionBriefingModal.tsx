@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { FileText, Printer, Download, CheckCircle2, AlertTriangle, ShieldCheck, X } from 'lucide-react';
+import { FileText, Printer, CheckCircle2 } from 'lucide-react';
 import { RoutePlan, FailureScenarioType } from '../types';
 
 interface MissionBriefingModalProps {

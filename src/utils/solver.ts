@@ -66,13 +66,22 @@ export interface SolverContext {
   roverPos?: { lat: number; lon: number };
   /** Base habitat position (lat/lon). */
   basePos?: { lat: number; lon: number };
+  /**
+   * Pre-computed constellation coverage (review I4): lets the caller reuse the
+   * exact MC result shown on the map instead of re-running the sampler here.
+   */
+  precomputedCoverage?: number | null;
 }
 
-/** Parse strings like "89.90°S" / "2.72°E" into signed decimal degrees. */
+/** Shared polar fallback anchor (review M2) — single source for map + solver. */
+export const DEFAULT_MAP_ANCHOR = { lat: -89.4, lon: 10 };
+
+/** Parse strings like "89.90°S" / "2.72°E" into signed decimal degrees.
+ *  An explicit leading minus never double-negates with an S/W hemisphere. */
 export function parseLatLonString(value: string): number {
   const m = /^\s*(-?\d+(?:\.\d+)?)\s*°?\s*([NSEW])\s*$/i.exec(value);
   if (!m) return NaN;
-  const mag = parseFloat(m[1]);
+  const mag = Math.abs(parseFloat(m[1]));
   const hemi = m[2].toUpperCase();
   const negative = hemi === 'S' || hemi === 'W';
   return negative ? -mag : mag;
@@ -254,9 +263,11 @@ export function generateRoutePlans(
   const baseRegionMargin = computeBaseBatteryMargin(illumFraction);
   const baseBaselineMargin = computeBaseBatteryMargin(BASELINE_ILLUMINATION_FRACTION);
   const computedCoverage =
-    ctx.relays && ctx.deadZones
-      ? calculateConstellationCoverage(ctx.relays, ctx.deadZones, isMitigationActive, ctx.region)
-      : null;
+    ctx.precomputedCoverage != null
+      ? ctx.precomputedCoverage
+      : ctx.relays && ctx.deadZones
+        ? calculateConstellationCoverage(ctx.relays, ctx.deadZones, isMitigationActive, ctx.region)
+        : null;
   const severityMultiplier = ctx.spaceWeatherMultiplier ?? 1.0;
 
   // Traverse & link geometry (live)
@@ -826,6 +837,41 @@ export function generateRoutePlans(
 }
 
 export const calculateRoutePlans = generateRoutePlans;
+
+/**
+ * Number of dead zones whose CENTER lies outside every active surface relay
+ * footprint (planar km-space, same mapping as the coverage model).
+ * Honest replacement for the former `isMitigationActive ? 0 : ...` heuristic.
+ */
+export function countUncoveredDeadZones(
+  relays: RelayNode[],
+  deadZones: DeadZone[],
+  isMitigationActive: boolean,
+  region?: Pick<LunarRegion, 'centerLat' | 'centerLon'>
+): number {
+  const anchorLat = region ? parseLatLonString(region.centerLat) : -89.4;
+  const anchorLon = region ? parseLatLonString(region.centerLon) : 10;
+  if (Number.isNaN(anchorLat) || Number.isNaN(anchorLon)) return deadZones.length;
+
+  const covers = relays
+    .filter(r => r.type !== 'orbital_lunanet')
+    .filter(r => r.status === 'active' || (isMitigationActive && r.isCandidate === true))
+    .map(r => {
+      const { xKm, yKm } = latLonToLocalKm(r.lat, r.lon, anchorLat, anchorLon);
+      return { xKm, yKm, radiusKm: r.coverageRadiusKm };
+    });
+
+  return deadZones.filter(dz => {
+    // Same percent->km mapping as calculateConstellationCoverage's holes.
+    const xKm = ((dz.xPercent - 50) / 50) * MAP_EXTENT_HALF_KM;
+    const yKm = ((50 - dz.yPercent) / 50) * MAP_EXTENT_HALF_KM;
+    return !covers.some(c => {
+      const dx = xKm - c.xKm;
+      const dy = yKm - c.yKm;
+      return dx * dx + dy * dy <= c.radiusKm * c.radiusKm;
+    });
+  }).length;
+}
 
 /**
  * Calculates current network-wide constellation coverage percentage.

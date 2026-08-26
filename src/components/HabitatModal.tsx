@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Home, Zap, Shield, Radio, CheckCircle2, Save } from 'lucide-react';
+import { Home, Save } from 'lucide-react';
 
 interface HabitatModalProps {
   isOpen: boolean;
@@ -15,7 +15,6 @@ export const HabitatModal: React.FC<HabitatModalProps> = ({ isOpen, onClose }) =
   const [habName, setHabName] = useState<string>('Artemis Outpost Alpha');
   const [habCoords, setHabCoords] = useState<string>('89.12°S 17.54°E');
   const [powerReserve, setPowerReserve] = useState<number>(84);
-  const [lifeSupportStatus, setLifeSupportStatus] = useState<string>('NOMINAL (Cabin Press: 101.3 kPa)');
 
   if (!isOpen) return null;
 

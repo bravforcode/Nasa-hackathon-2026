@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Sparkles, Radio, CheckCircle2, X, Plus } from 'lucide-react';
+import { Sparkles, CheckCircle2, X, Plus } from 'lucide-react';
 
 interface DesignAssistModalProps {
   isOpen: boolean;

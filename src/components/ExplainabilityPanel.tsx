@@ -7,17 +7,11 @@ import React, { useState } from 'react';
 import {
   X,
   Sparkles,
-  Database,
-  Sliders,
-  HelpCircle,
-  Layers,
-  ExternalLink,
-  CheckCircle2,
-  AlertTriangle
+  ExternalLink
 } from 'lucide-react';
 import { RoutePlan } from '../types';
 import { NASA_DATA_SOURCES, RECOVERY_ASSUMPTIONS } from '../data/lunarData';
-import { fetchGeminiExplanation, type ExplanationState } from '../services/gemini/explain';
+import { fetchGeminiExplanation, type ExplanationResult, type ExplanationState } from '../services/gemini/explain';
 
 interface ExplainabilityPanelProps {
   isOpen: boolean;
@@ -48,7 +42,7 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'score' | 'sources' | 'assumptions' | 'sensitivity'>('score');
   const [aiLoading, setAiLoading] = useState<boolean>(false);
-  const [aiResult, setAiResult] = useState<{ text: string; source: 'gemini' | 'fallback' } | null>(null);
+  const [aiResult, setAiResult] = useState<ExplanationResult | null>(null);
 
   const handleExplain = async () => {
     if (!explanationInput || aiLoading) return;
@@ -411,8 +405,8 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
               </div>
               {cmrInfo && !('error' in cmrInfo) && cmrInfo.titles.length > 0 && (
                 <ul className="text-[10px] text-slate-400 list-disc list-inside space-y-0.5">
-                  {cmrInfo.titles.map((t, i) => (
-                    <li key={i} className="truncate">{t}</li>
+                  {cmrInfo.titles.map((t) => (
+                    <li key={t} className="truncate">{t}</li>
                   ))}
                 </ul>
               )}

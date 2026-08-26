@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Sliders, ShieldCheck, AlertCircle, Save } from 'lucide-react';
+import { Sliders, Save } from 'lucide-react';
 
 interface ConstraintsModalProps {
   isOpen: boolean;
@@ -15,7 +15,6 @@ export const ConstraintsModal: React.FC<ConstraintsModalProps> = ({ isOpen, onCl
   const [minBatteryReserve, setMinBatteryReserve] = useState<number>(20);
   const [maxCommsOutageMin, setMaxCommsOutageMin] = useState<number>(5);
   const [maxSlopeGradient, setMaxSlopeGradient] = useState<number>(15);
-  const [minThermalTemp, setMinThermalTemp] = useState<number>(60); // Kelvin
 
   if (!isOpen) return null;
 

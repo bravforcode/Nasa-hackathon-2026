@@ -65,7 +65,7 @@ export function buildDonkiUrl(
  * the public DEMO_KEY. Cast keeps import.meta.env typing local to this module.
  */
 export function resolveApiKey(): string {
-  const env = (import.meta as any).env;
+  const env = (import.meta as unknown as { env?: Record<string, string> }).env;
   return env?.VITE_NASA_API_KEY ?? DEFAULT_NASA_API_KEY;
 }
 
@@ -152,17 +152,43 @@ export function recentWindowDays(days: number): { startDate: string; endDate: st
 }
 
 /**
- * Convenience wrapper: recent flares + CMEs over the last `days` UTC days
- * (default 7). Both requests run in parallel; either failing rejects.
+ * Convenience wrapper: recent space weather over the last `days` UTC days.
+ *
+ * Review I5 fixes:
+ * - FLR-only by default (CME fetch halved DEMO_KEY quota for data we ignored).
+ * - Module-level cache with a 10-minute TTL so scenario toggling doesn't
+ *   refetch (DEMO_KEY: 30 req/hour).
  */
+interface SpaceWeatherCache {
+  at: number;
+  days: number;
+  data: { flares: DonkiFlare[]; cmes: DonkiCme[] };
+}
+const CACHE_TTL_MS = 10 * 60 * 1000;
+let swCache: SpaceWeatherCache | null = null;
+
+export function clearSpaceWeatherCache(): void {
+  swCache = null;
+}
+
 export async function fetchRecentSpaceWeather(
   days: number = 7,
-  apiKey?: string
+  apiKey?: string,
+  opts?: { includeCmes?: boolean; now?: number }
 ): Promise<{ flares: DonkiFlare[]; cmes: DonkiCme[] }> {
+  const includeCmes = opts?.includeCmes ?? false;
+  const now = opts?.now ?? Date.now();
+  if (swCache && swCache.days === days && now - swCache.at < CACHE_TTL_MS) {
+    return swCache.data;
+  }
+
   const { startDate, endDate } = recentWindowDays(days);
-  const [flares, cmes] = await Promise.all([
-    fetchDonkiEvents<DonkiFlare>('FLR', startDate, endDate, apiKey),
-    fetchDonkiEvents<DonkiCme>('CME', startDate, endDate, apiKey),
-  ]);
-  return { flares, cmes };
+  const flares = await fetchDonkiEvents<DonkiFlare>('FLR', startDate, endDate, apiKey);
+  let cmes: DonkiCme[] = [];
+  if (includeCmes) {
+    cmes = await fetchDonkiEvents<DonkiCme>('CME', startDate, endDate, apiKey);
+  }
+  const data = { flares, cmes };
+  swCache = { at: now, days, data };
+  return data;
 }

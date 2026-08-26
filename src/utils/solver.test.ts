@@ -9,10 +9,16 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   computeRouteViability,
+  countUncoveredDeadZones,
   generateRoutePlans,
   parseLatLonString,
 } from './solver';
-import { INITIAL_RELAYS, INITIAL_DEAD_ZONES, LUNAR_REGIONS, ROVER_START, BASE_ALPHA_POS } from '../data/lunarData';
+import {
+  INITIAL_RELAYS,
+  INITIAL_DEAD_ZONES,
+  LUNAR_REGIONS,
+  MITIGATION_RELAY_CANDIDATE,
+} from '../data/lunarData';
 
 const ctx = {
   region: LUNAR_REGIONS[0],
@@ -26,6 +32,9 @@ describe('parseLatLonString', () => {
     expect(parseLatLonString('2.72°E')).toBeCloseTo(2.72, 6);
     expect(parseLatLonString('88.34°W')).toBe(-88.34);
     expect(parseLatLonString('10°N')).toBe(10);
+    // M1: an explicit minus sign must not double-negate with S/W hemispheres.
+    expect(parseLatLonString('-89.9°S')).toBe(-89.9);
+    expect(parseLatLonString('-14.5°W')).toBe(-14.5);
     expect(parseLatLonString('garbage')).toBeNaN();
   });
 });
@@ -62,6 +71,24 @@ describe('route geometry (computed distances & travel times)', () => {
     const w = noRelays.find(p => p.id === 'balanced')!.minSignalDbm;
     // With every surface relay down, the worst-case link must degrade.
     expect(w).toBeLessThan(n);
+  });
+});
+
+describe('countUncoveredDeadZones (I1: honest dead-zone count)', () => {
+  const region = LUNAR_REGIONS[0];
+
+  test('default fleet: both dead-zone centers uncovered => 2', () => {
+    expect(countUncoveredDeadZones(INITIAL_RELAYS, INITIAL_DEAD_ZONES, false, region)).toBe(2);
+  });
+
+  test('apex mitigation genuinely covers D-Zone 2 center => 1', () => {
+    const fleet = [...INITIAL_RELAYS, { ...MITIGATION_RELAY_CANDIDATE, status: 'active' as const }];
+    expect(countUncoveredDeadZones(fleet, INITIAL_DEAD_ZONES, true, region)).toBe(1);
+  });
+
+  test('all relays offline => every zone uncovered', () => {
+    const down = INITIAL_RELAYS.map(r => ({ ...r, status: 'offline' as const }));
+    expect(countUncoveredDeadZones(down, INITIAL_DEAD_ZONES, false, region)).toBe(2);
   });
 });
 

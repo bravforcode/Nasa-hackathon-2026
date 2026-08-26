@@ -12,8 +12,7 @@ import {
   ChevronDown, 
   ChevronUp, 
   Thermometer, 
-  Radio, 
-  ShieldAlert,
+  Radio,
   Clock,
   Navigation
 } from 'lucide-react';

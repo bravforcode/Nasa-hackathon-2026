@@ -18,6 +18,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { RelayNode, ScienceSite, DeadZone, PlanOption, FailureScenarioType, LunarRegion } from '../types';
 import { latLonToLocalKm, localKmToLatLon } from '../utils/powerModel';
+import { DEFAULT_MAP_ANCHOR } from '../utils/solver';
 
 // NASA Trek Moon WMTS — LOLA-derived shaded relief (live-verified 2026-08-26).
 // Max native zoom is 5 (z6+ returns 404); Leaflet upscales beyond that.
@@ -61,7 +62,6 @@ export const LunarMap: React.FC<LunarMapProps> = ({
   scienceSites,
   deadZones,
   activePlan,
-  activeScenario,
   isMitigationActive,
   region,
   onMoveRelay,
@@ -82,9 +82,10 @@ export const LunarMap: React.FC<LunarMapProps> = ({
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
 
-  // Region anchor (signed decimal degrees). Falls back to Shackleton area.
-  const anchorLat = parseAnchor(region?.centerLat, /S/i, -89.9);
-  const anchorLon = parseAnchor(region?.centerLon, /W/i, 0);
+  // Region anchor (signed decimal degrees). Falls back to the solver's shared
+  // default anchor so map and math can never diverge (review M2).
+  const anchorLat = parseAnchor(region?.centerLat, /S/i, DEFAULT_MAP_ANCHOR.lat);
+  const anchorLon = parseAnchor(region?.centerLon, /W/i, DEFAULT_MAP_ANCHOR.lon);
 
   // --- Projection helpers (single source of truth with the solver) ---
   const project = (lat: number, lon: number): { x: number; y: number } => {
@@ -275,6 +276,7 @@ export const LunarMap: React.FC<LunarMapProps> = ({
             onPointerMove={handlePointerMove}
             onPointerUp={endDrag}
             onPointerLeave={endDrag}
+            onLostPointerCapture={endDrag}
           >
             <defs>
               <radialGradient id="grad-relay-nominal" cx="50%" cy="50%" r="50%">
@@ -489,6 +491,8 @@ export const LunarMap: React.FC<LunarMapProps> = ({
                   className={onMoveRelay && !isApex ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}
                   style={{ touchAction: 'none' }}
                   onPointerDown={(e) => {
+                    // Apex is intentionally NOT draggable: it is a candidate
+                    // asset at a surveyed site; only deployed fleet nodes move.
                     if (onMoveRelay && !isApex) {
                       e.currentTarget.setPointerCapture?.(e.pointerId);
                       setDragId(relay.id);

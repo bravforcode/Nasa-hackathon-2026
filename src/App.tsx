@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   INITIAL_RELAYS,
   SCIENCE_SITES,
@@ -20,11 +20,12 @@ import {
   FailureScenarioType,
   PlanOption
 } from './types';
-import { calculateRoutePlans, calculateConstellationCoverage, type SolverContext } from './utils/solver';
+import { calculateRoutePlans, calculateConstellationCoverage, countUncoveredDeadZones, type SolverContext } from './utils/solver';
 import { fetchRecentSpaceWeather } from './services/nasa/donki';
 import { fetchCmrCollections } from './services/nasa/cmr';
 import type { ExplanationState } from './services/gemini/explain';
 import { sepSeverityFromFlares, type SepSeverityLevel } from './utils/powerModel';
+import { loadSavedState, saveState, clearSavedState } from './utils/persist';
 
 // Components
 import { TopAppBar } from './components/TopAppBar';
@@ -43,25 +44,15 @@ import { ConstraintsModal } from './components/ConstraintsModal';
 import { ComponentLibraryView } from './components/ComponentLibraryView';
 import { IlluminationTimeline } from './components/IlluminationTimeline';
 
+export type SepSeverity = { level: SepSeverityLevel; multiplier: number };
+export type CmrInfo = { count: number; titles: string[]; fetchedAt: string } | { error: true };
+
 export function App() {
   // Navigation
   const [activeTab, setActiveTab] = useState<NavigationTab>('region');
 
-  // Saved session (localStorage) — read once before any state that restores it
-  const loadSaved = (): Partial<{
-    relays: RelayNode[];
-    deadZones: DeadZone[];
-    regionId: string;
-    scenario: FailureScenarioType;
-  }> | null => {
-    try {
-      const raw = localStorage.getItem('lunar-relay-os-v1');
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  };
-  const saved = useMemo(loadSaved, []);
+  // Saved session (validated by utils/persist — malformed payloads are discarded)
+  const saved = useMemo(loadSavedState, []);
 
   // Core State
   const [activeScenario, setActiveScenario] = useState<FailureScenarioType>(saved?.scenario ?? 'relay_failure'); // Defaults to the 72h relay failure demo
@@ -77,18 +68,23 @@ export function App() {
   const [scienceSites, setScienceSites] = useState<ScienceSite[]>(SCIENCE_SITES);
   const [deadZones, setDeadZones] = useState<DeadZone[]>(saved?.deadZones ?? INITIAL_DEAD_ZONES);
 
-  // Persist layout + scenario whenever they change
+  // Persist layout + scenario — debounced 300 ms so drag frames don't hammer
+  // localStorage (review I4).
+  const persistTimer = useRef<number | null>(null);
   useEffect(() => {
-    try {
-      localStorage.setItem('lunar-relay-os-v1', JSON.stringify({
+    if (persistTimer.current !== null) window.clearTimeout(persistTimer.current);
+    persistTimer.current = window.setTimeout(() => {
+      saveState({
+        version: 1,
         relays,
         deadZones,
         regionId: selectedRegion.id,
         scenario: activeScenario,
-      }));
-    } catch {
-      /* storage unavailable — session-only mode */
-    }
+      });
+    }, 300);
+    return () => {
+      if (persistTimer.current !== null) window.clearTimeout(persistTimer.current);
+    };
   }, [relays, deadZones, selectedRegion, activeScenario]);
 
   const handleResetLayout = () => {
@@ -96,16 +92,14 @@ export function App() {
     setDeadZones(INITIAL_DEAD_ZONES);
     setSelectedRegion(LUNAR_REGIONS[0]);
     setActiveScenario('relay_failure');
-    try { localStorage.removeItem('lunar-relay-os-v1'); } catch { /* noop */ }
+    clearSavedState();
   };
 
   // Live DONKI space weather (fetched only for the space_weather scenario)
-  type SepSeverity = { level: SepSeverityLevel; multiplier: number };
   const [sepSeverity, setSepSeverity] = useState<SepSeverity>({ level: 'low', multiplier: 1.0 });
   const [sepStatus, setSepStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
 
   // Live CMR collection metadata (provenance panel) — fetched once on mount
-  type CmrInfo = { count: number; titles: string[]; fetchedAt: string } | { error: true };
   const [cmrInfo, setCmrInfo] = useState<CmrInfo | null>(null);
 
   useEffect(() => {
@@ -133,7 +127,9 @@ export function App() {
       })
       .catch(() => {
         if (cancelled) return;
-        setSepStatus('error'); // solver keeps multiplier 1.0 on failure
+        // Reset to quiet so a stale severe multiplier never outlives its data.
+        setSepSeverity({ level: 'low', multiplier: 1.0 });
+        setSepStatus('error');
       });
     return () => { cancelled = true; };
   }, [activeScenario]);
@@ -174,22 +170,6 @@ export function App() {
     });
   }, [relays, activeScenario, isMitigationActive]);
 
-  // Calculate dynamic Route Plans using solver (region + fleet + live DONKI aware)
-  const solverCtx = useMemo<SolverContext>(() => ({
-    region: selectedRegion,
-    relays: currentRelays,
-    deadZones,
-    spaceWeatherMultiplier: sepSeverity.multiplier,
-  }), [selectedRegion, currentRelays, deadZones, sepSeverity]);
-
-  const routePlans = useMemo(() => {
-    return calculateRoutePlans(activeScenario, sliderValue, isMitigationActive, solverCtx);
-  }, [activeScenario, sliderValue, isMitigationActive, solverCtx]);
-
-  const activePlan = useMemo(() => {
-    return routePlans.find(p => p.id === selectedPlanId) || routePlans[1];
-  }, [routePlans, selectedPlanId]);
-
   // Live constellation coverage — computed for both mitigation states so the
   // Design Assist panel can show the REAL delta, not a hardcoded one.
   const coverageWithoutMitigation = useMemo(() => {
@@ -202,7 +182,36 @@ export function App() {
 
   const coveragePercent = isMitigationActive ? coverageWithMitigation : coverageWithoutMitigation;
 
-  const deadZonesCount = isMitigationActive ? 0 : activeScenario === 'relay_failure' ? 2 : 1;
+  // Honest dead-zone counts from real geometry (review I1) — a zone counts as
+  // covered only when an active relay footprint actually contains its center.
+  const deadZonesBefore = useMemo(
+    () => countUncoveredDeadZones(currentRelays, deadZones, false, selectedRegion),
+    [currentRelays, deadZones, selectedRegion]
+  );
+  const deadZonesAfter = useMemo(
+    () => countUncoveredDeadZones(currentRelays, deadZones, true, selectedRegion),
+    [currentRelays, deadZones, selectedRegion]
+  );
+  const deadZonesCount = isMitigationActive ? deadZonesAfter : deadZonesBefore;
+
+  // Calculate dynamic Route Plans using solver (region + fleet + live DONKI aware).
+  // Precomputed coverage (review I4): reuse the exact MC result instead of
+  // re-running the sampler inside the solver.
+  const solverCtx = useMemo<SolverContext>(() => ({
+    region: selectedRegion,
+    relays: currentRelays,
+    deadZones,
+    spaceWeatherMultiplier: sepSeverity.multiplier,
+    precomputedCoverage: coveragePercent,
+  }), [selectedRegion, currentRelays, deadZones, sepSeverity, coveragePercent]);
+
+  const routePlans = useMemo(() => {
+    return calculateRoutePlans(activeScenario, sliderValue, isMitigationActive, solverCtx);
+  }, [activeScenario, sliderValue, isMitigationActive, solverCtx]);
+
+  const activePlan = useMemo(() => {
+    return routePlans.find(p => p.id === selectedPlanId) || routePlans[1];
+  }, [routePlans, selectedPlanId]);
 
   // Average relay health
   const relayHealthAvg = useMemo(() => {
@@ -381,8 +390,8 @@ export function App() {
         onDeployMitigation={() => setIsMitigationActive(!isMitigationActive)}
         coverageBefore={coverageWithoutMitigation}
         coverageAfter={coverageWithMitigation}
-        deadZonesBefore={deadZonesCount}
-        deadZonesAfter={0}
+        deadZonesBefore={deadZonesBefore}
+        deadZonesAfter={deadZonesAfter}
       />
 
       <MissionBriefingModal

@@ -6,8 +6,7 @@
 import React from 'react';
 import { 
   Radio, 
-  Settings, 
-  User, 
+  Settings,
   Sparkles, 
   FileText, 
   Database,

@@ -49,7 +49,10 @@ export async function fetchCmrCollections(
   const timer = setTimeout(() => controller.abort(), 10_000);
   // Chain caller signal so early disposal cancels immediately.
   const onAbort = () => controller.abort();
-  signal?.addEventListener('abort', onAbort);
+  if (signal) {
+    if (signal.aborted) controller.abort(); // align with donki.ts semantics (M4)
+    else signal.addEventListener('abort', onAbort);
+  }
 
   try {
     const headers: Record<string, string> = { Accept: 'application/json' };
@@ -70,6 +73,6 @@ export async function fetchCmrCollections(
     throw new CmrError(err instanceof Error ? err.message : 'CMR network failure', undefined);
   } finally {
     clearTimeout(timer);
-    signal?.removeEventListener('abort', onAbort);
+    if (signal) signal.removeEventListener('abort', onAbort);
   }
 }

@@ -114,9 +114,11 @@ export const MITIGATION_RELAY_CANDIDATE: RelayNode = {
   lat: -89.88,
   lon: 8.45,
   elevKm: 4.35,
-  type: 'ridge_mast',
-  status: 'candidate',
-  coverageRadiusKm: 18.5,
+    type: 'ridge_mast',
+    status: 'candidate',
+    // 22 km: tuned so the authored "Apex closes Dead Zone 2" narrative matches
+    // the real planar geometry (dz2 center sits 20.3 km from the apex site).
+    coverageRadiusKm: 22.0,
   frequencyBand: 'Multi-Band LunaNet Relay (Ka/Optical/Ultra-Wideband)',
   healthPercent: 100,
   isCandidate: true,

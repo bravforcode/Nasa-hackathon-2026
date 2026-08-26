@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Compass, CheckCircle2, Mountain, Sun, Sparkles } from 'lucide-react';
+import { Compass, CheckCircle2 } from 'lucide-react';
 import { LUNAR_REGIONS } from '../data/lunarData';
 import { LunarRegion } from '../types';
 

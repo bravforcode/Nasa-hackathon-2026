@@ -32,7 +32,7 @@ Team [NAME] · NASA Space Apps Challenge 2026 · Challenge: *[fill after Oct 28]
 ## Slide 4 — LIVE DEMO MOMENTS
 **Change an input → watch the physics respond**
 - Drag Relay Alpha ~15 km → coverage 49.8% → 47.9%
-- Deploy Apex mast → coverage 49.8% → **62.5%**, dead zone closes
+- Deploy Apex mast → coverage 49.8% → **76.9%**, Dead Zone 2 center covered
 - Switch region to Faustini (12% sun) → battery margin collapses to 0%
 *Visual: 3-panel before/after screenshots*
 
@@ -45,9 +45,9 @@ Team [NAME] · NASA Space Apps Challenge 2026 · Challenge: *[fill after Oct 28]
 
 ## Slide 6 — HONEST ENGINEERING
 **What computes vs. what's authored — disclosed in-repo**
-- ✅ Computed: coverage, battery margin, viability, severity
-- ⚠️ Authored heuristics: radar scores, distances (documented in README)
-- 59 unit tests; deterministic PRNG → judges can reproduce every figure
+- ✅ Computed: coverage, battery margin, link budget (FSPL), distance/time, viability, severity
+- ⚠️ Authored heuristics: radar scores (documented in README)
+- 83 unit tests; deterministic PRNG → judges can reproduce every figure
 *Why: Validity criterion rewards grounded solutions over demos*
 
 ## Slide 7 — ROADMAP & ASK

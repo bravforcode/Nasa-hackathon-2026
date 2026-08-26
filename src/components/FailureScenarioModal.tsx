@@ -4,15 +4,13 @@
  */
 
 import React from 'react';
-import { 
-  X, 
-  BatteryCharging, 
-  PowerOff, 
-  WifiOff, 
-  SunMedium, 
-  CheckCircle2, 
-  AlertTriangle,
-  ChevronDown
+import {
+  X,
+  BatteryCharging,
+  PowerOff,
+  WifiOff,
+  SunMedium,
+  CheckCircle2
 } from 'lucide-react';
 import { FailureScenarioType } from '../types';
 

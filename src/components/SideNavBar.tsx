@@ -9,9 +9,8 @@ import {
   Home, 
   Radio, 
   FlaskConical, 
-  Sliders, 
+  Sliders,
   Layers,
-  Zap,
   BatteryCharging
 } from 'lucide-react';
 import { NavigationTab } from '../types';

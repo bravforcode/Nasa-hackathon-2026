@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { FlaskConical, CheckCircle2, AlertTriangle, Clock, Layers } from 'lucide-react';
+import { FlaskConical, Clock } from 'lucide-react';
 import { ScienceSite } from '../types';
 
 interface ScienceGoalsModalProps {

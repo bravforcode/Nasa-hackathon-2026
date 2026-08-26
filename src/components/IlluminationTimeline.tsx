@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Sun, Moon, Zap, Play, Pause, RotateCcw } from 'lucide-react';
+import { Sun } from 'lucide-react';
 
 interface IlluminationTimelineProps {
   currentOrbitDeg?: number;
@@ -12,11 +12,9 @@ interface IlluminationTimelineProps {
 }
 
 export const IlluminationTimeline: React.FC<IlluminationTimelineProps> = ({
-  currentOrbitDeg = 45,
   onScrubTime,
 }) => {
   const [playheadPercent, setPlayheadPercent] = useState<number>(50); // 50% = T-00:00 (NOW)
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
   // Time in hours from -24h to +24h
   const currentHour = Math.round(((playheadPercent - 50) / 50) * 24);

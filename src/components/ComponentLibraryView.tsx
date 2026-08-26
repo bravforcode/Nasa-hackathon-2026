@@ -4,19 +4,15 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  AlertTriangle, 
-  Loader2, 
-  Sparkles, 
-  Sliders, 
-  Check, 
-  Layers
+import {
+  AlertTriangle,
+  Loader2
 } from 'lucide-react';
 
 export const ComponentLibraryView: React.FC = () => {
   const [thrusterOutput, setThrusterOutput] = useState<number>(72);
   const [coordsInput, setCoordsInput] = useState<string>('89.123, -45.678');
-  const [loadingButton, setLoadingButton] = useState<string | null>(null);
+  const [, setLoadingButton] = useState<string | null>(null);
 
   const simulateLoading = (btnType: string) => {
     setLoadingButton(btnType);
