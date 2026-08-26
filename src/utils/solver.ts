@@ -4,10 +4,13 @@
  */
 
 import { FailureScenarioType, LunarRegion, PlanOption, RelayNode, RoutePlan, DeadZone } from '../types';
+import { INITIAL_RELAYS, ROVER_START, BASE_ALPHA_POS } from '../data/lunarData';
 import {
   batteryMarginPercent,
   coveragePercentPlanar,
+  haversineDistanceKm,
   latLonToLocalKm,
+  receivedPowerDbm,
   type PlanarCircle,
 } from './powerModel';
 
@@ -37,6 +40,15 @@ export const REGION_ANALYSIS_RADIUS_KM = 25; // surface patch analyzed for cover
 export const MAP_EXTENT_HALF_KM = 30;        // stylized map spans +/-30 km
 const BASELINE_ILLUMINATION_FRACTION = 0.88; // default region (Shackleton) anchor
 
+// --- Link budget & traverse model parameters (documented assumptions) ---
+export const SURFACE_LINK_MHZ = 2200;   // S-band proximity mesh (matches Relay Bravo band)
+export const ROVER_TX_DBM = 20;         // rover radio transmit power
+export const ANT_GAIN_DBI = 2;          // omni antenna gain, both ends
+export const NOMINAL_SPEED_KMH = 3.4;   // RECOVERY_ASSUMPTIONS vehicle limit
+export const SLOW_SPEED_KMH = 1.8;      // speed on slopes > 10 deg (flight rule)
+/** Route length multiplier: how much each archetype detours vs straight line. */
+const DETOUR_FACTOR: Record<PlanOption, number> = { safety: 0.75, balanced: 1.0, science: 1.55 };
+
 /**
  * Extra solver inputs that make outputs respond to real state instead of
  * constants. All fields optional for backward compatibility.
@@ -50,6 +62,10 @@ export interface SolverContext {
   deadZones?: DeadZone[];
   /** Live DONKI-derived space-weather multiplier (1.0 = quiet). */
   spaceWeatherMultiplier?: number;
+  /** Rover position (lat/lon) for link-budget & traverse geometry. */
+  roverPos?: { lat: number; lon: number };
+  /** Base habitat position (lat/lon). */
+  basePos?: { lat: number; lon: number };
 }
 
 /** Parse strings like "89.90°S" / "2.72°E" into signed decimal degrees. */
@@ -77,6 +93,31 @@ function computeBaseBatteryMargin(illuminationFraction: number): number {
     durationHours: MISSION_WINDOW_HOURS,
   });
 }
+
+/**
+ * Worst-case link distance (km): rover to the farthest ACTIVE surface relay.
+ * Orbital nodes excluded (backhaul). No active surface relay => assume the
+ * full map span as a pessimistic bound.
+ */
+export function worstActiveLinkKm(
+  relays: RelayNode[],
+  rover: { lat: number; lon: number }
+): number {
+  const active = relays.filter(r => r.status === 'active' && r.type !== 'orbital_lunanet');
+  if (active.length === 0) return 2 * MAP_EXTENT_HALF_KM;
+  return Math.max(...active.map(r => haversineDistanceKm(rover.lat, rover.lon, r.lat, r.lon)));
+}
+
+// Baseline received power with the full default fleet — used to re-center the
+// authored per-archetype dBm values so the default demo looks familiar while
+// fleet changes move every route through the real FSPL formula.
+const BASELINE_SIGNAL_DBM = receivedPowerDbm(
+  worstActiveLinkKm(INITIAL_RELAYS, ROVER_START),
+  SURFACE_LINK_MHZ,
+  ROVER_TX_DBM,
+  ANT_GAIN_DBI,
+  ANT_GAIN_DBI
+);
 
 const clampPct = (v: number) => Math.max(0, Math.min(100, v));
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
@@ -117,6 +158,8 @@ function finalizePlans(
     baseBaselineMargin: number;
     computedCoverage: number | null;
     severityMultiplier: number;
+    straightLineKm: number;
+    liveWorstLinkKm: number;
   }
 ): RoutePlan[] {
   const COVERAGE_FACTOR: Record<PlanOption, number> = {
@@ -132,16 +175,42 @@ function finalizePlans(
       p.computedCoverage == null
         ? plan.coveragePercent
         : Math.round(clampPct(p.computedCoverage * COVERAGE_FACTOR[plan.id]));
+
+    // Link budget: authored dBm re-centered on the live FSPL computation.
+    const signalDelta = plan.minSignalDbm - BASELINE_SIGNAL_DBM;
+    const liveSignal = receivedPowerDbm(
+      p.liveWorstLinkKm,
+      SURFACE_LINK_MHZ,
+      ROVER_TX_DBM,
+      ANT_GAIN_DBI,
+      ANT_GAIN_DBI
+    );
+    const signal = Math.round((liveSignal + signalDelta) * 10) / 10;
+
+    // Traverse geometry: real straight-line distance x archetype detour factor,
+    // timed with the repo's own flight-rule speeds.
+    const distanceKm = +(p.straightLineKm * DETOUR_FACTOR[plan.id]).toFixed(1);
+    const speed = plan.maxGradientDeg > 10 ? SLOW_SPEED_KMH : NOMINAL_SPEED_KMH;
+    const travelTimeHours = +(distanceKm / speed).toFixed(1);
+
     const viability = Math.round(
       clampPct(
         computeRouteViability({
           batteryMarginPercent: battery,
           coveragePercent: coverage,
-          minSignalDbm: plan.minSignalDbm,
+          minSignalDbm: signal,
         }) - severityPenalty
       )
     );
-    return { ...plan, batteryMarginPercent: battery, coveragePercent: coverage, viabilityPercent: viability };
+    return {
+      ...plan,
+      batteryMarginPercent: battery,
+      coveragePercent: coverage,
+      viabilityPercent: viability,
+      distanceKm,
+      travelTimeHours,
+      minSignalDbm: signal,
+    };
   });
 }
 
@@ -189,8 +258,22 @@ export function generateRoutePlans(
       ? calculateConstellationCoverage(ctx.relays, ctx.deadZones, isMitigationActive, ctx.region)
       : null;
   const severityMultiplier = ctx.spaceWeatherMultiplier ?? 1.0;
+
+  // Traverse & link geometry (live)
+  const rover = ctx.roverPos ?? ROVER_START;
+  const base = ctx.basePos ?? BASE_ALPHA_POS;
+  const straightLineKm = haversineDistanceKm(rover.lat, rover.lon, base.lat, base.lon);
+  const liveWorstLinkKm = worstActiveLinkKm(ctx.relays ?? INITIAL_RELAYS, rover);
+
   const finalize = (plans: RoutePlan[]) =>
-    finalizePlans(plans, { baseRegionMargin, baseBaselineMargin, computedCoverage, severityMultiplier });
+    finalizePlans(plans, {
+      baseRegionMargin,
+      baseBaselineMargin,
+      computedCoverage,
+      severityMultiplier,
+      straightLineKm,
+      liveWorstLinkKm,
+    });
 
   if (isMitigationActive) {
     // Post-Mitigation (Apex Relay Added): Network is restored to 98.4% with redundant crosslinks

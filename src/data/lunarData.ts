@@ -237,8 +237,13 @@ export const NASA_DATA_SOURCES: NasaDataSource[] = [
   }
 ];
 
-export const RECOVERY_ASSUMPTIONS = [
-  {
+/** Rover start-of-sol position (near Site Echo, per mission narrative). */
+export const ROVER_START = { id: 'rover_01', lat: -89.05, lon: 24.8 };
+
+/** Base Alpha habitat position (co-located with Relay Alpha ridge). */
+export const BASE_ALPHA_POS = { id: 'base_alpha', lat: -89.4, lon: 14.0 };
+
+export const RECOVERY_ASSUMPTIONS = [  {
     category: 'Vehicle Limits',
     parameter: 'VIPER / Lunar Terrain Vehicle (LTV) Max Speed',
     nominalValue: '3.4 km/h (Nominal) / 5.0 km/h (Emergency Sprint)',
