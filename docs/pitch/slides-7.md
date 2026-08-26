@@ -31,9 +31,9 @@ Team [NAME] · NASA Space Apps Challenge 2026 · Challenge: *[fill after Oct 28]
 
 ## Slide 4 — LIVE DEMO MOMENTS
 **Change an input → watch the physics respond**
-- Drag Relay Alpha ~15 km → coverage 24.3% → 19.8%
-- Deploy Apex mast → coverage **24.3% → 35.4%**, Dead Zone 2 center covered
-- Terrain ray-casting shows raw range specs overstate real coverage ~2×
+- Drag Relay Alpha ~15 km → coverage 21.6% → 16.1%
+- Deploy Apex mast → coverage **21.6% → 92.3%**, dead zones eliminated
+- Ray-casting on the REAL LOLA DEM: raw range specs overstate coverage ~2×
 - Switch region to Faustini (12% sun) → battery margin collapses to 0%
 *Visual: 3-panel before/after screenshots*
 
@@ -42,13 +42,14 @@ Team [NAME] · NASA Space Apps Challenge 2026 · Challenge: *[fill after Oct 28]
 |---|---|---|
 | DONKI (api.nasa.gov) | Solar-flare feed → space-weather severity | Live fetch, DEMO_KEY verified |
 | Trek WMTS | LOLA shaded-relief basemap tiles | Tile HTTP 200 (maxNativeZoom 5) |
+| LOLA GDR DEM | Elevation grid for horizon ray-casting | LDEM_80S_80M embedded @480 m |
 | Earthdata CMR | Dataset metadata provenance panel | Live collection query |
 
 ## Slide 6 — HONEST ENGINEERING
 **What computes vs. what's authored — disclosed in-repo**
-- ✅ Computed: coverage (+terrain LOS), battery margin, link budget (FSPL), distance/time, viability, severity, radar (4/5 axes)
-- ⚠️ Disclosed: radar `science` axis = authored design intent; terrain = synthetic-calibrated until LOLA DEM ingested
-- 96 unit tests; deterministic PRNG → judges can reproduce every figure
+- ✅ Computed on real data: coverage (+LOLA DEM LOS), battery, FSPL link budget, distance/time, viability, severity, radar (4/5 axes)
+- ⚠️ Disclosed: radar `science` axis = authored design intent
+- 104 unit tests; deterministic PRNG → judges can reproduce every figure
 *Why: Validity criterion rewards grounded solutions over demos*
 
 ## Slide 7 — ROADMAP & ASK

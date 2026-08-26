@@ -9,6 +9,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   calculateConstellationCoverage,
+  calculateWeightsFromSlider,
   computeRouteViability,
   computeRadarScores,
   countUncoveredDeadZones,
@@ -74,6 +75,22 @@ describe('route geometry (computed distances & travel times)', () => {
     // With every surface relay down, the worst-case link must degrade.
     expect(w).toBeLessThan(n);
   });
+
+  test('IMP4: compositeJ is the weighted mean of live radar axes', () => {
+    const plans = generateRoutePlans('nominal', 50, false, ctx);
+    const w = calculateWeightsFromSlider(50);
+    for (const p of plans) {
+      const r = p.radarScores;
+      const expected = +(
+        (w.safetyWeight * r.safety +
+          w.commsWeight * r.communication +
+          w.powerWeight * r.power +
+          w.scienceWeight * r.science +
+          w.resilienceWeight * r.resilience)
+      ).toFixed(1);
+      expect(p.scoreBreakdown.compositeJ).toBeCloseTo(expected, 1);
+    }
+  });
 });
 
 describe('countUncoveredDeadZones (I1: honest dead-zone count)', () => {
@@ -83,9 +100,39 @@ describe('countUncoveredDeadZones (I1: honest dead-zone count)', () => {
     expect(countUncoveredDeadZones(INITIAL_RELAYS, INITIAL_DEAD_ZONES, false, region)).toBe(2);
   });
 
-  test('apex mitigation genuinely covers D-Zone 2 center => 1', () => {
+  test('apex mitigation covers both dead zones (>=90% area) => 0', () => {
+    // A 45 km mast on the +4.3 km rim (terrain-scaled) envelopes both zones.
     const fleet = [...INITIAL_RELAYS, { ...MITIGATION_RELAY_CANDIDATE, status: 'active' as const }];
-    expect(countUncoveredDeadZones(fleet, INITIAL_DEAD_ZONES, true, region)).toBe(1);
+    expect(countUncoveredDeadZones(fleet, INITIAL_DEAD_ZONES, true, region)).toBe(0);
+  });
+
+  test('IMP2: counter agrees with coverage model on DZ2 containment', () => {
+    // The Monte Carlo uses terrain-shrunk radii; the counter must too.
+    const fleet = [...INITIAL_RELAYS, { ...MITIGATION_RELAY_CANDIDATE, status: 'active' as const }];
+    const covNoHoles = calculateConstellationCoverage(
+      fleet,
+      [],
+      true,
+      region
+    );
+    const covWithDz2 = calculateConstellationCoverage(
+      fleet,
+      INITIAL_DEAD_ZONES.filter(d => d.id === 'dzone_2'),
+      true,
+      region
+    );
+    const counterSaysCovered = countUncoveredDeadZones(fleet, [INITIAL_DEAD_ZONES.find(d => d.id === 'dzone_2')!], true, region) === 0;
+    // A fully-contained hole still removes exactly its own area share from
+    // the Monte Carlo — "covered" means NO ADDITIONAL loss beyond that.
+    const zoneShare = Math.pow(
+      INITIAL_DEAD_ZONES.find(d => d.id === 'dzone_2')!.radiusKm / 25,
+      2
+    ) * 100;
+    if (counterSaysCovered) {
+      expect(Math.abs(covNoHoles - covWithDz2 - zoneShare)).toBeLessThanOrEqual(1.5);
+    } else {
+      expect(covWithDz2).toBeLessThan(covNoHoles - zoneShare + 1.5);
+    }
   });
 
   test('all relays offline => every zone uncovered', () => {

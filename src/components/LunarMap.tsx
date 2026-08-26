@@ -546,20 +546,21 @@ export const LunarMap: React.FC<LunarMapProps> = ({
               </g>
             )}
 
-            {/* Base Alpha Habitat Marker (decorative) */}
-            <g transform={`translate(${baseAlpha.x}, ${baseAlpha.y})`}>
+            {/* Base Alpha Habitat Marker — projected, non-interactive so it
+                can never steal Relay Alpha's drag hit-area (review IMP3) */}
+            <g transform={`translate(${baseAlpha.x}, ${baseAlpha.y})`} style={{ pointerEvents: 'none' }}>
               <rect x="-12" y="-12" width="24" height="24" fill="#0e1321" stroke="#4C8DFF" strokeWidth="2" rx="3" />
               <rect x="-6" y="-6" width="12" height="12" fill="#4C8DFF" rx="2" />
-              <text x="18" y="4" fill="#ffffff" fontSize="11" fontFamily="JetBrains Mono" fontWeight="800">
+              <text x="18" y="26" fill="#ffffff" fontSize="11" fontFamily="JetBrains Mono" fontWeight="800">
                 {baseAlpha.name}
               </text>
-              <text x="18" y="16" fill="#8c909f" fontSize="8" fontFamily="JetBrains Mono">
+              <text x="18" y="38" fill="#8c909f" fontSize="8" fontFamily="JetBrains Mono">
                 HABITAT SHELTER &amp; EPS
               </text>
             </g>
 
-            {/* VIPER Rover Marker (decorative) */}
-            <g transform={`translate(${roverPos.x}, ${roverPos.y})`}>
+            {/* VIPER Rover Marker — projected, non-interactive */}
+            <g transform={`translate(${roverPos.x}, ${roverPos.y})`} style={{ pointerEvents: 'none' }}>
               <circle cx="0" cy="0" r="14" fill="none" stroke="#00FF94" strokeWidth="1.5" className="animate-pulse" />
               <circle cx="0" cy="0" r="6" fill="#00FF94" />
               <line x1="0" y1="0" x2="-18" y2="12" stroke="#00FF94" strokeWidth="2" />

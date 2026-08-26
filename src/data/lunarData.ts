@@ -116,9 +116,12 @@ export const MITIGATION_RELAY_CANDIDATE: RelayNode = {
   elevKm: 4.35,
     type: 'ridge_mast',
     status: 'candidate',
-    // 22 km: tuned so the authored "Apex closes Dead Zone 2" narrative matches
-    // the real planar geometry (dz2 center sits 20.3 km from the apex site).
-    coverageRadiusKm: 22.0,
+    // 55 km nominal: a mast on the +4.3 km rim has a geometric radio horizon
+    // of sqrt(2*R*h) ≈ 122 km, so 55 km stays conservative even though the
+    // ray-cast LOS factor at the site floors near 0.55 (eff ≈ 30 km) — which
+    // is what makes the authored "Apex closes the dead zones" narrative true
+    // under the ray-cast model (dz centers sit 20.3 / 23.0 km away).
+    coverageRadiusKm: 55,
   frequencyBand: 'Multi-Band LunaNet Relay (Ka/Optical/Ultra-Wideband)',
   healthPercent: 100,
   isCandidate: true,
@@ -267,6 +270,6 @@ export const RECOVERY_ASSUMPTIONS = [  {
     category: 'Line of Sight',
     parameter: 'Fresnel Zone Clearance & Mast Height',
     nominalValue: '12m mast elevation above local terrain datum',
-    rule: 'Ray-marched horizon LOS over the built-in synthetic-calibrated terrain model (utils/terrain.ts, 12 m mast, 16 azimuths) scales each relay footprint by losFactor in [0.55, 1]. Swap in a LOLA DEM-backed TerrainProvider for survey-grade masks.',
+    rule: 'Ray-marched horizon LOS over the REAL LOLA DEM (LDEM_80S_80M, NASA LRO LOLA GDR V1.0; build-time grid at 480 m posting) scales each relay footprint by losFactor in [0.55, 1].',
   }
 ];

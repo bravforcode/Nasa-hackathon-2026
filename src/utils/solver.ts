@@ -14,6 +14,8 @@ import {
   type PlanarCircle,
 } from './powerModel';
 import { SyntheticPolarTerrain, horizonProfile, losFactor, type TerrainProvider } from './terrain';
+import { DEM_GRID } from '../data/demGrid.generated';
+import { GriddedDemTerrain } from './lolaTerrain';
 
 export interface ObjectiveWeights {
   safetyWeight: number;      // w_s
@@ -78,12 +80,21 @@ export interface SolverContext {
 export const DEFAULT_MAP_ANCHOR = { lat: -89.4, lon: 10 };
 
 /**
- * Shared synthetic-calibrated terrain (see utils/terrain.ts). Ray-casting is
- * real; swap this provider for a LOLA DEM-backed one without touching callers.
+ * Shared terrain: REAL LOLA DEM (build-time grid from LDEM_80S_80M) with a
+ * synthetic-calibrated fallback if the payload ever fails to decode.
+ * Ray-marching is unchanged — only the elevation source swapped.
  */
-const SHARED_TERRAIN = new SyntheticPolarTerrain();
+const SHARED_TERRAIN: TerrainProvider = (() => {
+  try {
+    return new GriddedDemTerrain(DEM_GRID.meta, DEM_GRID.dnBase64);
+  } catch {
+    return new SyntheticPolarTerrain();
+  }
+})();
 
-/** Cache LOS factors per (provider, relay position) — no cross-provider bleed. */
+/** Cache LOS factors per (provider, relay position) — capped so long drag
+ *  sessions can't grow the map forever (review M1). */
+const LOS_CACHE_CAP = 5000;
 const losCache = new WeakMap<TerrainProvider, Map<string, number>>();
 function relayLosFactor(relayId: string, lat: number, lon: number, terrain: TerrainProvider): number {
   let byPos = losCache.get(terrain);
@@ -95,6 +106,7 @@ function relayLosFactor(relayId: string, lat: number, lon: number, terrain: Terr
   let f = byPos.get(key);
   if (f === undefined) {
     f = losFactor(horizonProfile(terrain, lat, lon));
+    if (byPos.size >= LOS_CACHE_CAP) byPos.clear();
     byPos.set(key, f);
   }
   return f;
@@ -239,6 +251,8 @@ function finalizePlans(
     relaysActive: number;
     relaysTotal: number;
     isMitigationActive: boolean;
+    /** Slider weights — used to recompute compositeJ from live radar (IMP4). */
+    weights: ObjectiveWeights;
   }
 ): RoutePlan[] {
   const COVERAGE_FACTOR: Record<PlanOption, number> = {
@@ -296,6 +310,32 @@ function finalizePlans(
       sciencePriority: plan.radarScores.science,
     });
 
+    // Review IMP4: recompute the composite-J ranking from the LIVE radar so
+    // RecoveryCards' "J = x.x" can never contradict the radar panel beside it.
+    const w = p.weights;
+    const wSum = w.safetyWeight + w.commsWeight + w.powerWeight + w.scienceWeight + w.resilienceWeight;
+    const compositeJ =
+      wSum > 0
+        ? +(
+            (w.safetyWeight * radarScores.safety +
+              w.commsWeight * radarScores.communication +
+              w.powerWeight * radarScores.power +
+              w.scienceWeight * radarScores.science +
+              w.resilienceWeight * radarScores.resilience) /
+            wSum
+          ).toFixed(1)
+        : plan.scoreBreakdown.compositeJ;
+
+    const speedIndex = +(clamp01(1 - travelTimeHours / 12) * 10).toFixed(1);
+    const scoreBreakdown = {
+      safetyScore: radarScores.safety,
+      speedIndex,
+      riskMitigation: radarScores.resilience,
+      powerReserve: radarScores.power,
+      scienceYield: radarScores.science,
+      compositeJ,
+    };
+
     return {
       ...plan,
       batteryMarginPercent: battery,
@@ -305,6 +345,7 @@ function finalizePlans(
       travelTimeHours,
       minSignalDbm: signal,
       radarScores,
+      scoreBreakdown,
     };
   });
 }
@@ -375,6 +416,7 @@ export function generateRoutePlans(
       ).length,
       relaysTotal: (ctx.relays ?? INITIAL_RELAYS).filter(r => r.type !== 'orbital_lunanet').length,
       isMitigationActive,
+      weights,
     });
 
   if (isMitigationActive) {
@@ -934,33 +976,56 @@ export const calculateRoutePlans = generateRoutePlans;
  * footprint (planar km-space, same mapping as the coverage model).
  * Honest replacement for the former `isMitigationActive ? 0 : ...` heuristic.
  */
+/** Fraction of a small circle (center dx,dy; radius r) inside a big circle
+ *  (radius R centered at origin), via the standard lens-area formula.
+ *  Returns 1 when fully contained, 0 when disjoint. */
+function circleContainmentFraction(dx: number, dy: number, r: number, R: number): number {
+  const d = Math.hypot(dx, dy);
+  if (d + r <= R) return 1;
+  if (d >= R + r || d === 0) return d === 0 ? (r <= R ? 1 : 0) : 0;
+  // Lens area of two circles (big R at origin, small r at distance d):
+  const a =
+    R * R * Math.acos((d * d + R * R - r * r) / (2 * d * R)) +
+    r * r * Math.acos((d * d + r * r - R * R) / (2 * d * r)) -
+    0.5 * Math.sqrt((-d + R + r) * (d + R - r) * (d - R + r) * (d + R + r));
+  return Math.max(0, Math.min(1, a / (Math.PI * r * r)));
+}
+
+/**
+ * Number of dead zones that remain operationally significant: a zone counts
+ * as COVERED only when >=90% of its AREA falls inside some active relay's
+ * terrain-shrunk footprint (review IMP2 — center-containment alone let the
+ * UI claim elimination while the Monte Carlo still sampled holes there).
+ */
 export function countUncoveredDeadZones(
   relays: RelayNode[],
   deadZones: DeadZone[],
   isMitigationActive: boolean,
-  region?: Pick<LunarRegion, 'centerLat' | 'centerLon'>
+  region?: Pick<LunarRegion, 'centerLat' | 'centerLon'>,
+  terrain: TerrainProvider = SHARED_TERRAIN
 ): number {
-  const anchorLat = region ? parseLatLonString(region.centerLat) : -89.4;
-  const anchorLon = region ? parseLatLonString(region.centerLon) : 10;
+  const anchorLat = region ? parseLatLonString(region.centerLat) : DEFAULT_MAP_ANCHOR.lat;
+  const anchorLon = region ? parseLatLonString(region.centerLon) : DEFAULT_MAP_ANCHOR.lon;
   if (Number.isNaN(anchorLat) || Number.isNaN(anchorLon)) return deadZones.length;
 
   const covers = relays
     .filter(r => r.type !== 'orbital_lunanet')
     .filter(r => r.status === 'active' || (isMitigationActive && r.isCandidate === true))
     .map(r => {
+      const effRadius =
+        r.coverageRadiusKm * relayLosFactor(r.id, r.lat, r.lon, terrain);
       const { xKm, yKm } = latLonToLocalKm(r.lat, r.lon, anchorLat, anchorLon);
-      return { xKm, yKm, radiusKm: r.coverageRadiusKm };
+      return { xKm, yKm, radiusKm: effRadius };
     });
 
   return deadZones.filter(dz => {
-    // Same percent->km mapping as calculateConstellationCoverage's holes.
     const xKm = ((dz.xPercent - 50) / 50) * MAP_EXTENT_HALF_KM;
     const yKm = ((50 - dz.yPercent) / 50) * MAP_EXTENT_HALF_KM;
-    return !covers.some(c => {
-      const dx = xKm - c.xKm;
-      const dy = yKm - c.yKm;
-      return dx * dx + dy * dy <= c.radiusKm * c.radiusKm;
-    });
+    const best = covers.reduce((acc, c) => {
+      const f = circleContainmentFraction(xKm - c.xKm, yKm - c.yKm, dz.radiusKm, c.radiusKm);
+      return Math.max(acc, f);
+    }, 0);
+    return best < 0.9;
   }).length;
 }
 

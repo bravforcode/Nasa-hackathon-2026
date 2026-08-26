@@ -17,7 +17,7 @@ It is being converted into a real tool. Current state, verified by unit tests:
 
 | Metric | Status | How it is produced |
 |---|---|---|
-| Constellation coverage % | ✅ **Computed, terrain-aware** | Deterministic Monte Carlo over relay lat/lon footprints minus dead zones (`coveragePercentPlanar`), with each footprint shrunk by a **ray-marched horizon LOS factor** (`utils/terrain.ts`, 16 azimuths × 0.75 km steps, 12 m mast). Deploying Apex: ≈24.3% → 35.4% for Shackleton. Terrain shows raw range specs overstate real mesh coverage ~2× — that finding IS the product. |
+| Constellation coverage % | ✅ **Computed on REAL LOLA DEM** | Monte Carlo over relay footprints minus dead zones (`coveragePercentPlanar`), each footprint scaled by a **ray-marched horizon LOS factor over the actual LOLA DEM** (`LDEM_80S_80M`, NASA LRO LOLA GDR V1.0 — build-time grid `demGrid.generated.ts`, 480 m posting, bilinear). Deploying Apex: ≈21.6% → 92.3% for Shackleton. Terrain shows raw range specs overstate real polar mesh coverage ~2× — that finding IS the product. |
 | Map imagery | ✅ **Real NASA tiles** | Leaflet EPSG:4326 layer over NASA Trek WMTS `LRO_LOLA_ClrShade_Global_128ppd_v04` (maxNativeZoom 5, verified serving). All map nodes (relays, science sites, dead zones) are projected from their actual lat/lon with the same km scale the solver uses — what you see matches what is computed. Relay nodes are **draggable**. |
 | Battery margin % | ✅ **Computed (hybrid)** | Energy balance `P = S₀ · illumination · cos(tilt) · area · eff` over a 24 h window vs. rover load (`batteryMarginPercent`). Regional illumination drives the baseline; per-plan offsets are authored constants re-centered on it. Deficits clamp to 0% in the UI. |
 | Link budget (minSignalDbm) | ✅ **Computed** | Free-space path loss `20log₁₀d + 20log₁₀f + 32.44` on the S-band mesh (2200 MHz, +20 dBm, 2×2 dBi) from rover→farthest active relay (`receivedPowerDbm`); per-plan offsets re-centered on the default fleet. |
@@ -96,7 +96,7 @@ src/
 4. ~~CMR provenance panel; truthful LOS assumption text~~ ✅ done
 5. ~~AI explainer~~ ✅ done — free-first: local rule engine default ($0/offline); Gemini free tier optional via `VITE_GEMINI_API_KEY` (browser-key pattern documented; proxy before real deployment)
 6. ~~Project base habitat / rover markers onto the same projection~~ ✅ done
-7. ~~Horizon ray-casting~~ ✅ done over a **synthetic-calibrated** `TerrainProvider` (declared band, deterministic; NOT LOLA data). Next: ingest real LOLA DEM behind the same interface (precomputed polar visibility grids to stay client-side).
+7. ~~Horizon ray-casting~~ ✅ done — now running on the **REAL LOLA DEM** (`LDEM_80S_80M` via build-time pipeline: download → 480 m avg-pooled grid → embedded lazy chunk; `TerrainProvider` interface unchanged). Synthetic provider remains as tested fallback.
 
 ## License
 

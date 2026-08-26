@@ -24,10 +24,11 @@ export interface TerrainProvider {
 // --- Deterministic value noise ---------------------------------------------
 
 function hash2(ix: number, iy: number, seed: number): number {
-  let h = ix * 374761393 + iy * 668265263 + seed * 1442695040888963407;
-  h = (h ^ (h >>> 13)) >>> 0;
-  h = Math.imul(h, 1274126177) >>> 0;
-  return ((h ^ (h >>> 16)) >>> 0) / 4294967295; // [0,1)
+  // All arithmetic stays in 32-bit lanes (review IMP1): mixing float64 with a
+  // >2^53 constant quantized inputs and collapsed entropy to ~1024 values.
+  let h = (Math.imul(ix, 374761393) ^ Math.imul(iy, 668265263) ^ Math.imul(seed, 0x9e3779b1)) >>> 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0;
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296; // [0,1)
 }
 
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
@@ -56,8 +57,10 @@ const KM_PER_DEG = Math.PI * 1737.4 / 180;
 
 /**
  * Deterministic synthetic terrain for the south-polar operations area.
- * Two octaves of value noise (+/-700 m) with a caldera depression and a
- * highland dome superimposed. Fully deterministic across sessions.
+ * Two octaves of site-adjusted value noise (+/-225 m / +/-125 m) with a
+ * caldera depression and a highland dome superimposed. Fully deterministic
+ * across sessions. Used as the fallback provider until a real DEM grid is
+ * loaded, and by tests that need an injectable elevation field.
  */
 export class SyntheticPolarTerrain implements TerrainProvider {
   private readonly seed: number;

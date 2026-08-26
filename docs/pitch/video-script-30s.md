@@ -15,14 +15,14 @@
 |---|---|---|
 | 0:00–0:04 | Map view, kill Relay Bravo (scenario modal click) | "Your relay just died at the lunar south pole. Every minute of blackout is mission risk." |
 | 0:04–0:11 | KPI cards updating; region switch Shackleton→Faustini showing battery collapse | "LUNAR RELAY OS doesn't guess. It computes coverage from real relay geometry, and battery margins from regional solar illumination." |
-| 0:11–0:18 | Drag Relay Alpha — coverage % moves live; deploy Apex — 24.3%→35.4% | "Drag a relay, and the network recomputes instantly. Deploy the Apex mast, and dead zones close." |
+| 0:11–0:18 | Drag Relay Alpha — coverage % moves live; deploy Apex — 21.6%→92.3% | "Drag a relay, and the network recomputes instantly. Deploy the Apex mast, and dead zones close." |
 | 0:18–0:24 | Space Weather scenario; DONKI fetch badge flips to LIVE | "Space-weather severity comes from NASA's live DONKI solar-flare feed." |
-| 0:24–0:28 | Provenance panel: Trek LOLA tiles attribution + CMR block | "LOLA imagery, DONKI alerts, CMR metadata. Mission continuity — computed, not claimed." |
+| 0:24–0:28 | Provenance panel: Trek LOLA tiles attribution + CMR block | "LOLA elevation and imagery, DONKI alerts, CMR metadata. Mission continuity — computed, not claimed." |
 
 ## Production checklist
 - [ ] Screen recording at 1080p+, cursor enlarged, dark UI readable on mobile
 - [ ] VO recorded EN (or TH + burned-in EN subtitles — rule requirement)
-- [ ] On-screen captions of the key numbers (24.3%→35.4%, 88%→12% illumination)
+- [ ] On-screen captions of the key numbers (21.6%→92.3%, 88%→12% illumination)
 - [ ] End card: team name + challenge statement name (fill after Oct 28)
 - [ ] Verify final export duration ≤ 0:30 BEFORE upload
 - [ ] Public link test in incognito browser
