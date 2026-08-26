@@ -260,6 +260,6 @@ export const RECOVERY_ASSUMPTIONS = [
     category: 'Line of Sight',
     parameter: 'Fresnel Zone Clearance & Mast Height',
     nominalValue: '12m mast elevation above local terrain datum',
-    rule: 'Approximated via LOLA 5m horizon ray-casting algorithm.',
+    rule: 'Modeled as direct line-of-sight within each relay coverageRadiusKm on a local tangent plane (powerModel.coveragePercentPlanar). No DEM ray-casting is performed in this build.',
   }
 ];

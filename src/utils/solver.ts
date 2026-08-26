@@ -3,7 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { FailureScenarioType, PlanOption, RoutePlan } from '../types';
+import { FailureScenarioType, LunarRegion, PlanOption, RelayNode, RoutePlan, DeadZone } from '../types';
+import {
+  batteryMarginPercent,
+  coveragePercentPlanar,
+  latLonToLocalKm,
+  type PlanarCircle,
+} from './powerModel';
 
 export interface ObjectiveWeights {
   safetyWeight: number;      // w_s
@@ -11,6 +17,132 @@ export interface ObjectiveWeights {
   powerWeight: number;       // w_p
   scienceWeight: number;     // w_t
   resilienceWeight: number;  // w_r
+}
+
+// ---------------------------------------------------------------------------
+// Power / environment model parameters
+//
+// These are MODEL ASSUMPTIONS (tunable demonstration parameters), not measured
+// mission values. The formulas they feed are real physics (see powerModel.ts);
+// changing a region's illumination or taking a relay offline changes every
+// derived number through those formulas.
+// ---------------------------------------------------------------------------
+export const ROVER_LOAD_W = 135;            // avg rover housekeeping + traverse load
+export const ROVER_BATTERY_WH = 500;        // main battery capacity
+export const ROVER_PANEL_AREA_M2 = 0.5;     // effective illuminated array area
+export const ROVER_PANEL_EFFICIENCY = 0.28; // cell efficiency (BOL)
+export const MODEL_PANEL_INCIDENCE_DEG = 25; // assumed panel tilt vs sun
+export const MISSION_WINDOW_HOURS = 24;      // energy-balance window
+export const REGION_ANALYSIS_RADIUS_KM = 25; // surface patch analyzed for coverage
+export const MAP_EXTENT_HALF_KM = 30;        // stylized map spans +/-30 km
+const BASELINE_ILLUMINATION_FRACTION = 0.88; // default region (Shackleton) anchor
+
+/**
+ * Extra solver inputs that make outputs respond to real state instead of
+ * constants. All fields optional for backward compatibility.
+ */
+export interface SolverContext {
+  /** Selected landing/ops region — drives the solar power model + coverage anchor. */
+  region?: Pick<LunarRegion, 'illuminationAvg' | 'centerLat' | 'centerLon'>;
+  /** Current relay fleet — drives computed constellation coverage. */
+  relays?: RelayNode[];
+  /** Current comms dead zones — subtracted from coverage geometry. */
+  deadZones?: DeadZone[];
+  /** Live DONKI-derived space-weather multiplier (1.0 = quiet). */
+  spaceWeatherMultiplier?: number;
+}
+
+/** Parse strings like "89.90°S" / "2.72°E" into signed decimal degrees. */
+export function parseLatLonString(value: string): number {
+  const m = /^\s*(-?\d+(?:\.\d+)?)\s*°?\s*([NSEW])\s*$/i.exec(value);
+  if (!m) return NaN;
+  const mag = parseFloat(m[1]);
+  const hemi = m[2].toUpperCase();
+  const negative = hemi === 'S' || hemi === 'W';
+  return negative ? -mag : mag;
+}
+
+/**
+ * Energy-balance battery margin (%) for a given regional illumination.
+ * P_solar = S0 * illum * cos(tilt) * area * eff ; margin over 24 h window.
+ */
+function computeBaseBatteryMargin(illuminationFraction: number): number {
+  return batteryMarginPercent({
+    illuminationFraction,
+    incidenceDeg: MODEL_PANEL_INCIDENCE_DEG,
+    panelAreaM2: ROVER_PANEL_AREA_M2,
+    panelEfficiency: ROVER_PANEL_EFFICIENCY,
+    loadW: ROVER_LOAD_W,
+    batteryCapacityWh: ROVER_BATTERY_WH,
+    durationHours: MISSION_WINDOW_HOURS,
+  });
+}
+
+const clampPct = (v: number) => Math.max(0, Math.min(100, v));
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+
+/**
+ * Route viability (%) computed from live model outputs instead of authored
+ * constants. Weighted composite (weights are model parameters, documented):
+ * - 40% power: battery margin normalized to a 50% "excellent" reference
+ * - 35% network: geometric constellation coverage
+ * - 25% link: min signal level mapped from -120 dBm (0) to -70 dBm (1)
+ */
+export function computeRouteViability(p: {
+  batteryMarginPercent: number;
+  coveragePercent: number;
+  minSignalDbm: number;
+}): number {
+  const nb = clamp01(p.batteryMarginPercent / 50);
+  const nc = clamp01(p.coveragePercent / 100);
+  const ns = clamp01((p.minSignalDbm + 120) / 50);
+  return Math.round(100 * (0.4 * nb + 0.35 * nc + 0.25 * ns));
+}
+
+/**
+ * Re-derives the three demo metrics from live model state:
+ * - batteryMarginPercent: authored value re-centered on the model baseline so
+ *   the default region reproduces the authored demo, while low-illumination
+ *   regions (e.g. Faustini 12%) collapse margins toward 0 through the formula.
+ * - coveragePercent: scaled from the geometrically computed constellation
+ *   coverage (relay footprints minus dead zones).
+ * - viabilityPercent: COMPUTED via computeRouteViability() from the live
+ *   battery/coverage/signal outputs, then penalized by the live DONKI
+ *   space-weather multiplier.
+ */
+function finalizePlans(
+  plans: RoutePlan[],
+  p: {
+    baseRegionMargin: number;
+    baseBaselineMargin: number;
+    computedCoverage: number | null;
+    severityMultiplier: number;
+  }
+): RoutePlan[] {
+  const COVERAGE_FACTOR: Record<PlanOption, number> = {
+    safety: 1.05,
+    balanced: 1.0,
+    science: 0.85,
+  };
+  const severityPenalty = (p.severityMultiplier - 1) * 40;
+  return plans.map((plan) => {
+    const delta = plan.batteryMarginPercent - p.baseBaselineMargin;
+    const battery = Math.round(clampPct(p.baseRegionMargin + delta));
+    const coverage =
+      p.computedCoverage == null
+        ? plan.coveragePercent
+        : Math.round(clampPct(p.computedCoverage * COVERAGE_FACTOR[plan.id]));
+    const viability = Math.round(
+      clampPct(
+        computeRouteViability({
+          batteryMarginPercent: battery,
+          coveragePercent: coverage,
+          minSignalDbm: plan.minSignalDbm,
+        }) - severityPenalty
+      )
+    );
+    return { ...plan, batteryMarginPercent: battery, coveragePercent: coverage, viabilityPercent: viability };
+  });
 }
 
 /**
@@ -43,9 +175,22 @@ export function calculateWeightsFromSlider(sliderVal: number): ObjectiveWeights 
 export function generateRoutePlans(
   scenario: FailureScenarioType,
   sliderVal: number,
-  isMitigationActive: boolean
+  isMitigationActive: boolean,
+  ctx: SolverContext = {}
 ): RoutePlan[] {
   const weights = calculateWeightsFromSlider(sliderVal);
+
+  // Live model state (falls back to baseline constants when ctx omitted).
+  const illumFraction = (ctx.region?.illuminationAvg ?? BASELINE_ILLUMINATION_FRACTION * 100) / 100;
+  const baseRegionMargin = computeBaseBatteryMargin(illumFraction);
+  const baseBaselineMargin = computeBaseBatteryMargin(BASELINE_ILLUMINATION_FRACTION);
+  const computedCoverage =
+    ctx.relays && ctx.deadZones
+      ? calculateConstellationCoverage(ctx.relays, ctx.deadZones, isMitigationActive, ctx.region)
+      : null;
+  const severityMultiplier = ctx.spaceWeatherMultiplier ?? 1.0;
+  const finalize = (plans: RoutePlan[]) =>
+    finalizePlans(plans, { baseRegionMargin, baseBaselineMargin, computedCoverage, severityMultiplier });
 
   if (isMitigationActive) {
     // Post-Mitigation (Apex Relay Added): Network is restored to 98.4% with redundant crosslinks
@@ -81,7 +226,7 @@ export function generateRoutePlans(
     const balancedPlan: RoutePlan = {
       id: 'balanced',
       name: 'Mitigated Full Campaign',
-      title: 'Route B (Apex Enabled) — 38% battery margin, 98% comms coverage',
+      title: 'Route B (Apex Enabled) — Balanced Power & Coverage',
       viabilityPercent: 98,
       coveragePercent: 98,
       batteryMarginPercent: 38,
@@ -136,7 +281,7 @@ export function generateRoutePlans(
       }
     };
 
-    return [safetyPlan, balancedPlan, sciencePlan];
+    return finalize([safetyPlan, balancedPlan, sciencePlan]);
   }
 
   if (scenario === 'nominal') {
@@ -158,7 +303,7 @@ export function generateRoutePlans(
       totalSitesCount: 3,
       abortedSites: ['Site Echo (Optional)'],
       redundancyLevel: 'Level 2 (Dual Relay LOS)',
-      narrative: 'Prioritizes early return to shelter with 42% battery margin and zero blackout exposure.',
+      narrative: 'Prioritizes early return to shelter with maximum battery reserve and zero blackout exposure.',
       radarScores: { safety: 9.5, communication: 9.6, power: 9.0, resilience: 9.0, science: 7.2 },
       scoreBreakdown: {
         safetyScore: 9.5,
@@ -173,7 +318,7 @@ export function generateRoutePlans(
     const balancedPlan: RoutePlan = {
       id: 'balanced',
       name: 'Balanced Exploration (Recommended)',
-      title: 'Route B — 32% battery margin, 91% comms coverage',
+      title: 'Route B — Balanced Power & Coverage Profile',
       viabilityPercent: 92,
       coveragePercent: 91,
       batteryMarginPercent: 32,
@@ -228,7 +373,7 @@ export function generateRoutePlans(
       }
     };
 
-    return [safetyPlan, balancedPlan, sciencePlan];
+    return finalize([safetyPlan, balancedPlan, sciencePlan]);
   }
 
   if (scenario === 'relay_failure') {
@@ -265,7 +410,7 @@ export function generateRoutePlans(
     const balancedPlan: RoutePlan = {
       id: 'balanced',
       name: 'Balanced (Alternate Link Bypass)',
-      title: 'Route B — 32% power margin, 85% comms coverage',
+      title: 'Route B — Alternate Link Bypass Profile',
       viabilityPercent: 92,
       coveragePercent: 85,
       batteryMarginPercent: 32,
@@ -279,7 +424,7 @@ export function generateRoutePlans(
       totalSitesCount: 3,
       abortedSites: ['Site Echo / Delta (Relocated sample target)'],
       redundancyLevel: 'Level 2 (Relay-A + Charlie Crosslink)',
-      narrative: 'Route B is recommended because it restores 85% coverage while maintaining a 1.5h recovery time — Route A drops below safety threshold if delayed.',
+      narrative: 'Route B is recommended because it restores most of the network footprint with a short 1.5h recovery time — Route A drops below safety threshold if delayed.',
       radarScores: { safety: 9.0, communication: 8.5, power: 8.2, resilience: 8.6, science: 8.0 },
       scoreBreakdown: {
         safetyScore: 9.0,
@@ -308,7 +453,7 @@ export function generateRoutePlans(
       totalSitesCount: 3,
       abortedSites: [],
       redundancyLevel: 'Level 0 (Unprotected 48-min Outage)',
-      narrative: 'Attempts all 3 targets despite Relay B outage; passes directly through Dead Zone 2 with battery reserve dipping below 8% limit.',
+      narrative: 'Attempts all 3 targets despite Relay B outage; passes directly through Dead Zone 2 with battery reserve dipping below the Rule-14.2 limit.',
       radarScores: { safety: 3.8, communication: 5.2, power: 3.0, resilience: 3.2, science: 9.8 },
       scoreBreakdown: {
         safetyScore: 3.8,
@@ -320,7 +465,7 @@ export function generateRoutePlans(
       }
     };
 
-    return [safetyPlan, balancedPlan, sciencePlan];
+    return finalize([safetyPlan, balancedPlan, sciencePlan]);
   }
 
   if (scenario === 'power_loss') {
@@ -356,7 +501,7 @@ export function generateRoutePlans(
     const balancedPlan: RoutePlan = {
       id: 'balanced',
       name: 'Ridge Solar Charging Trajectory',
-      title: 'Route B — 28% battery margin, 90% comms coverage',
+      title: 'Route B — Ridge Solar Charging Profile',
       viabilityPercent: 86,
       coveragePercent: 90,
       batteryMarginPercent: 28,
@@ -411,7 +556,7 @@ export function generateRoutePlans(
       }
     };
 
-    return [safetyPlan, balancedPlan, sciencePlan];
+    return finalize([safetyPlan, balancedPlan, sciencePlan]);
   }
 
   if (scenario === 'space_weather') {
@@ -448,7 +593,7 @@ export function generateRoutePlans(
     const balancedPlan: RoutePlan = {
       id: 'balanced',
       name: 'Hardened Mesh Trajectory',
-      title: 'Route B — 29% power margin, 82% comms coverage',
+      title: 'Route B — Hardened Mesh Profile',
       viabilityPercent: 89,
       coveragePercent: 82,
       batteryMarginPercent: 29,
@@ -503,7 +648,7 @@ export function generateRoutePlans(
       }
     };
 
-    return [safetyPlan, balancedPlan, sciencePlan];
+    return finalize([safetyPlan, balancedPlan, sciencePlan]);
   }
 
   // Comms blackout scenario
@@ -539,7 +684,7 @@ export function generateRoutePlans(
   const defaultBalanced: RoutePlan = {
     id: 'balanced',
     name: 'Local Surface Mesh Routing',
-    title: 'Route B — 30% battery margin, 84% comms coverage',
+    title: 'Route B — Local Mesh Routing Profile',
     viabilityPercent: 89,
     coveragePercent: 84,
     batteryMarginPercent: 30,
@@ -594,26 +739,54 @@ export function generateRoutePlans(
     }
   };
 
-  return [defaultSafety, defaultBalanced, defaultScience];
+  return finalize([defaultSafety, defaultBalanced, defaultScience]);
 }
 
 export const calculateRoutePlans = generateRoutePlans;
 
 /**
  * Calculates current network-wide constellation coverage percentage.
+ *
+ * REAL GEOMETRY (replaces the former literal 94/68/91 returns):
+ * - Anchor: selected region center (parsed from "89.90°S"-style strings).
+ * - Each ACTIVE surface relay covers a disk of its `coverageRadiusKm` around
+ *   its lat/lon, projected into the local tangent plane. Orbital LunaNet
+ *   nodes are excluded from the surface proximity mesh (they provide
+ *   backhaul/DTE, not surface LOS) — documented modeling decision.
+ * - Dead zones are mapped from stylized map percentages (xPercent/yPercent)
+ *   onto the same +/-30 km plane and carve holes out of coverage.
+ * - Result: deterministic Monte Carlo fraction of the 25 km analysis disk
+ *   that is inside >=1 relay footprint AND outside every dead zone.
  */
 export function calculateConstellationCoverage(
-  relays: { status: string; isCandidate?: boolean }[],
-  deadZones: { id: string }[],
-  isMitigationActive: boolean
+  relays: RelayNode[],
+  deadZones: DeadZone[],
+  isMitigationActive: boolean,
+  region?: Pick<LunarRegion, 'centerLat' | 'centerLon'>
 ): number {
-  if (isMitigationActive) {
-    return 94; // Shackleton Apex added
+  const anchorLat = region ? parseLatLonString(region.centerLat) : -89.4;
+  const anchorLon = region ? parseLatLonString(region.centerLon) : 10;
+  if (Number.isNaN(anchorLat) || Number.isNaN(anchorLon)) return 0;
+
+  const covers: PlanarCircle[] = [];
+  for (const relay of relays) {
+    if (relay.type === 'orbital_lunanet') continue; // backhaul only — see JSDoc
+    const isActive =
+      relay.status === 'active' || (isMitigationActive && relay.isCandidate === true);
+    if (!isActive) continue;
+    const { xKm, yKm } = latLonToLocalKm(relay.lat, relay.lon, anchorLat, anchorLon);
+    covers.push({ id: relay.id, xKm, yKm, radiusKm: relay.coverageRadiusKm });
   }
-  const isRelayOffline = relays.some(r => r.status === 'offline');
-  if (isRelayOffline) {
-    return 68; // Relay B offline
-  }
-  return 91; // Nominal
+
+  // Map-percentage -> km: xPercent/yPercent are 0..100 screen coords on a
+  // +/-30 km stylized map; y is inverted (screen down = south).
+  const holes: PlanarCircle[] = deadZones.map((dz) => ({
+    id: dz.id,
+    xKm: ((dz.xPercent - 50) / 50) * MAP_EXTENT_HALF_KM,
+    yKm: ((50 - dz.yPercent) / 50) * MAP_EXTENT_HALF_KM,
+    radiusKm: dz.radiusKm,
+  }));
+
+  return coveragePercentPlanar(covers, holes, REGION_ANALYSIS_RADIUS_KM);
 }
 
