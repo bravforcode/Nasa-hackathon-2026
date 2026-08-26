@@ -267,6 +267,6 @@ export const RECOVERY_ASSUMPTIONS = [  {
     category: 'Line of Sight',
     parameter: 'Fresnel Zone Clearance & Mast Height',
     nominalValue: '12m mast elevation above local terrain datum',
-    rule: 'Modeled as direct line-of-sight within each relay coverageRadiusKm on a local tangent plane (powerModel.coveragePercentPlanar). No DEM ray-casting is performed in this build.',
+    rule: 'Ray-marched horizon LOS over the built-in synthetic-calibrated terrain model (utils/terrain.ts, 12 m mast, 16 azimuths) scales each relay footprint by losFactor in [0.55, 1]. Swap in a LOLA DEM-backed TerrainProvider for survey-grade masks.',
   }
 ];

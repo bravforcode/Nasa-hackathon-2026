@@ -13,6 +13,7 @@ import {
   receivedPowerDbm,
   type PlanarCircle,
 } from './powerModel';
+import { SyntheticPolarTerrain, horizonProfile, losFactor, type TerrainProvider } from './terrain';
 
 export interface ObjectiveWeights {
   safetyWeight: number;      // w_s
@@ -75,6 +76,72 @@ export interface SolverContext {
 
 /** Shared polar fallback anchor (review M2) — single source for map + solver. */
 export const DEFAULT_MAP_ANCHOR = { lat: -89.4, lon: 10 };
+
+/**
+ * Shared synthetic-calibrated terrain (see utils/terrain.ts). Ray-casting is
+ * real; swap this provider for a LOLA DEM-backed one without touching callers.
+ */
+const SHARED_TERRAIN = new SyntheticPolarTerrain();
+
+/** Cache LOS factors per (provider, relay position) — no cross-provider bleed. */
+const losCache = new WeakMap<TerrainProvider, Map<string, number>>();
+function relayLosFactor(relayId: string, lat: number, lon: number, terrain: TerrainProvider): number {
+  let byPos = losCache.get(terrain);
+  if (!byPos) {
+    byPos = new Map();
+    losCache.set(terrain, byPos);
+  }
+  const key = `${relayId}:${lat.toFixed(4)}:${lon.toFixed(4)}`;
+  let f = byPos.get(key);
+  if (f === undefined) {
+    f = losFactor(horizonProfile(terrain, lat, lon));
+    byPos.set(key, f);
+  }
+  return f;
+}
+
+export interface RadarInput {
+  batteryMarginPercent: number;
+  coveragePercent: number;
+  minSignalDbm: number;
+  travelTimeHours: number;
+  relaysActive: number;
+  relaysTotal: number;
+  severityMultiplier: number;
+  isMitigationActive: boolean;
+  /** Authored design-intent value (the ONE disclosed non-derived axis). */
+  sciencePriority: number;
+}
+
+/**
+ * Five-axis radar scores. Four axes derive from live computed metrics with
+ * Formulas:
+ *   power        = 10 * clamp01(battery / 45)
+ *   communication= 10*(0.6*coverage/100 + 0.4*signalNorm) - (sevMult-1)*4
+ *   safety       = 10*(0.45*battN + 0.25*covN + 0.25*sigN + 0.05*timeN)
+ *   resilience   = 10*(0.5*redundancy + 0.35*covN + 0.15*sigN) [+0.5 if mitigated]
+ *   science      = sciencePriority (authored)
+ */
+export function computeRadarScores(p: RadarInput): {
+  safety: number; communication: number; power: number; science: number; resilience: number;
+} {
+  const battN = clamp01(p.batteryMarginPercent / 50);
+  const covN = clamp01(p.coveragePercent / 100);
+  const sigN = clamp01((p.minSignalDbm + 120) / 50);
+  const timeN = clamp01(1 - p.travelTimeHours / 12);
+  const redundancy = p.relaysTotal > 0 ? clamp01(p.relaysActive / p.relaysTotal) : 0;
+
+  const power = Math.round(10 * clamp01(p.batteryMarginPercent / 45));
+  const communication = Math.round(
+    Math.max(0, Math.min(10, 10 * (0.6 * covN + 0.4 * sigN) - (p.severityMultiplier - 1) * 4))
+  );
+  const safety = Math.round(10 * (0.45 * battN + 0.25 * covN + 0.25 * sigN + 0.05 * timeN));
+  const resilience = Math.round(
+    Math.min(10, 10 * (0.5 * redundancy + 0.35 * covN + 0.15 * sigN) + (p.isMitigationActive ? 0.5 : 0))
+  );
+  const science = Math.round(Math.max(0, Math.min(10, p.sciencePriority)));
+  return { safety, communication, power, science, resilience };
+}
 
 /** Parse strings like "89.90°S" / "2.72°E" into signed decimal degrees.
  *  An explicit leading minus never double-negates with an S/W hemisphere. */
@@ -169,6 +236,9 @@ function finalizePlans(
     severityMultiplier: number;
     straightLineKm: number;
     liveWorstLinkKm: number;
+    relaysActive: number;
+    relaysTotal: number;
+    isMitigationActive: boolean;
   }
 ): RoutePlan[] {
   const COVERAGE_FACTOR: Record<PlanOption, number> = {
@@ -211,6 +281,21 @@ function finalizePlans(
         }) - severityPenalty
       )
     );
+
+    // Radar: four axes computed from live outputs; science passes through the
+    // plan's authored design-intent value (the one disclosed non-derived axis).
+    const radarScores = computeRadarScores({
+      batteryMarginPercent: battery,
+      coveragePercent: coverage,
+      minSignalDbm: signal,
+      travelTimeHours,
+      relaysActive: p.relaysActive ?? 0,
+      relaysTotal: p.relaysTotal ?? 1,
+      severityMultiplier: p.severityMultiplier,
+      isMitigationActive: p.isMitigationActive,
+      sciencePriority: plan.radarScores.science,
+    });
+
     return {
       ...plan,
       batteryMarginPercent: battery,
@@ -219,6 +304,7 @@ function finalizePlans(
       distanceKm,
       travelTimeHours,
       minSignalDbm: signal,
+      radarScores,
     };
   });
 }
@@ -284,6 +370,11 @@ export function generateRoutePlans(
       severityMultiplier,
       straightLineKm,
       liveWorstLinkKm,
+      relaysActive: (ctx.relays ?? INITIAL_RELAYS).filter(
+        r => r.status === 'active' && r.type !== 'orbital_lunanet'
+      ).length,
+      relaysTotal: (ctx.relays ?? INITIAL_RELAYS).filter(r => r.type !== 'orbital_lunanet').length,
+      isMitigationActive,
     });
 
   if (isMitigationActive) {
@@ -891,10 +982,11 @@ export function calculateConstellationCoverage(
   relays: RelayNode[],
   deadZones: DeadZone[],
   isMitigationActive: boolean,
-  region?: Pick<LunarRegion, 'centerLat' | 'centerLon'>
+  region?: Pick<LunarRegion, 'centerLat' | 'centerLon'>,
+  terrain: TerrainProvider = SHARED_TERRAIN
 ): number {
-  const anchorLat = region ? parseLatLonString(region.centerLat) : -89.4;
-  const anchorLon = region ? parseLatLonString(region.centerLon) : 10;
+  const anchorLat = region ? parseLatLonString(region.centerLat) : DEFAULT_MAP_ANCHOR.lat;
+  const anchorLon = region ? parseLatLonString(region.centerLon) : DEFAULT_MAP_ANCHOR.lon;
   if (Number.isNaN(anchorLat) || Number.isNaN(anchorLon)) return 0;
 
   const covers: PlanarCircle[] = [];
@@ -903,8 +995,12 @@ export function calculateConstellationCoverage(
     const isActive =
       relay.status === 'active' || (isMitigationActive && relay.isCandidate === true);
     if (!isActive) continue;
+    // Terrain-aware effective range: ray-marched horizon shrinks the nominal
+    // footprint (losFactor in [0.55, 1]; cached per position).
+    const effRadius =
+      relay.coverageRadiusKm * relayLosFactor(relay.id, relay.lat, relay.lon, terrain);
     const { xKm, yKm } = latLonToLocalKm(relay.lat, relay.lon, anchorLat, anchorLon);
-    covers.push({ id: relay.id, xKm, yKm, radiusKm: relay.coverageRadiusKm });
+    covers.push({ id: relay.id, xKm, yKm, radiusKm: effRadius });
   }
 
   // Map-percentage -> km: xPercent/yPercent are 0..100 screen coords on a

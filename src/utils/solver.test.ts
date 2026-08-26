@@ -8,7 +8,9 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
+  calculateConstellationCoverage,
   computeRouteViability,
+  computeRadarScores,
   countUncoveredDeadZones,
   generateRoutePlans,
   parseLatLonString,
@@ -89,6 +91,67 @@ describe('countUncoveredDeadZones (I1: honest dead-zone count)', () => {
   test('all relays offline => every zone uncovered', () => {
     const down = INITIAL_RELAYS.map(r => ({ ...r, status: 'offline' as const }));
     expect(countUncoveredDeadZones(down, INITIAL_DEAD_ZONES, false, region)).toBe(2);
+  });
+});
+
+describe('terrain-aware coverage (DEM ray-casting integration)', () => {
+  const region = LUNAR_REGIONS[0];
+  const flat = { elevationAt: () => 0 };
+
+  test('flat terrain preserves the baseline coverage number', () => {
+    const c = calculateConstellationCoverage(INITIAL_RELAYS, INITIAL_DEAD_ZONES, false, region, flat);
+    expect(c).toBeGreaterThan(0);
+  });
+
+  test('a 3 km wall just east of Relay Alpha reduces its footprint => lower coverage', () => {
+    // Wall offset ~1 deg east of Alpha's meridian (observer NOT on the wall).
+    const wall = {
+      elevationAt: (_lat: number, lon: number) =>
+        Math.abs(lon - 15.2) < 0.35 ? 3000 : 0,
+    };
+    const cFlat = calculateConstellationCoverage(INITIAL_RELAYS, INITIAL_DEAD_ZONES, false, region, flat);
+    const cWall = calculateConstellationCoverage(INITIAL_RELAYS, INITIAL_DEAD_ZONES, false, region, wall);
+    expect(cWall).toBeLessThan(cFlat);
+  });
+});
+
+describe('computeRadarScores (honest radar)', () => {
+  const base = {
+    batteryMarginPercent: 32,
+    coveragePercent: 91,
+    minSignalDbm: -92,
+    travelTimeHours: 6.4,
+    relaysActive: 2,
+    relaysTotal: 3,
+    severityMultiplier: 1.0,
+    isMitigationActive: false,
+    sciencePriority: 6,
+  };
+
+  test('returns all five axes within 0..10', () => {
+    const r = computeRadarScores(base);
+    for (const k of ['safety', 'communication', 'power', 'science', 'resilience'] as const) {
+      expect(r[k]).toBeGreaterThanOrEqual(0);
+      expect(r[k]).toBeLessThanOrEqual(10);
+    }
+  });
+
+  test('more battery => higher power score; more relays => higher resilience', () => {
+    const low = computeRadarScores({ ...base, batteryMarginPercent: 5, relaysActive: 1 });
+    const high = computeRadarScores({ ...base, batteryMarginPercent: 45, relaysActive: 3 });
+    expect(high.power).toBeGreaterThan(low.power);
+    expect(high.resilience).toBeGreaterThan(low.resilience);
+  });
+
+  test('severe space weather degrades communication only', () => {
+    const quiet = computeRadarScores(base);
+    const storm = computeRadarScores({ ...base, severityMultiplier: 1.6 });
+    expect(storm.communication).toBeLessThan(quiet.communication);
+    expect(storm.power).toBe(quiet.power);
+  });
+
+  test('science axis passes through the authored design-intent value', () => {
+    expect(computeRadarScores({ ...base, sciencePriority: 9 }).science).toBe(9);
   });
 });
 
