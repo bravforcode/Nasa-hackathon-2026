@@ -6,6 +6,7 @@
 import React from 'react';
 import { ArrowRight, ShieldCheck, Scale, FlaskConical, Sliders } from 'lucide-react';
 import { PlanOption, RoutePlan } from '../types';
+import { Button, Card } from './ui';
 
 interface RecoveryCardsProps {
   plans: RoutePlan[];
@@ -27,7 +28,7 @@ export const RecoveryCards: React.FC<RecoveryCardsProps> = ({
   return (
     <div className="flex flex-col gap-2.5 w-full">
       {/* Objective Function Slider: Science ↔ Safety Balance */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-3 px-5 backdrop-blur-xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl">
+      <Card variant="default" padding="sm" className="px-5 backdrop-blur-xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl">
         <div className="flex items-center gap-2 text-xs font-mono text-slate-300">
           <Sliders className="w-3.5 h-3.5 text-blue-400" />
           <span className="font-bold uppercase tracking-wider">Optimization Weight Matrix:</span>
@@ -46,6 +47,7 @@ export const RecoveryCards: React.FC<RecoveryCardsProps> = ({
             max="100"
             value={sliderValue}
             onChange={(e) => onSliderChange(Number(e.target.value))}
+            aria-label="Optimization Weight: Science to Safety Focus"
             className="flex-1 accent-blue-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
           />
 
@@ -59,7 +61,7 @@ export const RecoveryCards: React.FC<RecoveryCardsProps> = ({
             {sliderValue}%
           </span>
         </div>
-      </div>
+      </Card>
 
       {/* 3 Strategy Plan Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -70,8 +72,17 @@ export const RecoveryCards: React.FC<RecoveryCardsProps> = ({
           return (
             <div
               key={plan.id}
+              role="button"
+              tabIndex={0}
+              aria-pressed={isSelected}
               onClick={() => onSelectPlan(plan.id)}
-              className={`rounded-2xl p-4 flex flex-col justify-between transition-all duration-200 cursor-pointer relative overflow-hidden backdrop-blur-xl shadow-xl ${
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelectPlan(plan.id);
+                }
+              }}
+              className={`rounded-2xl p-4 flex flex-col justify-between transition-all duration-200 cursor-pointer relative overflow-hidden backdrop-blur-xl shadow-xl outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
                 isSelected
                   ? 'bg-blue-500/10 border-2 border-blue-400/60 shadow-[0_0_25px_rgba(59,130,246,0.2)] ring-1 ring-blue-400/30'
                   : 'bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/[0.08]'
@@ -133,18 +144,19 @@ export const RecoveryCards: React.FC<RecoveryCardsProps> = ({
 
               {/* Bottom Action / Why This Score */}
               <div className="flex items-center justify-between pt-2.5 border-t border-white/10">
-                <button
-                  type="button"
+                <Button
+                  variant="tertiary"
+                  size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     onSelectPlan(plan.id);
                     onOpenExplainability();
                   }}
-                  className="font-mono text-[10px] font-bold text-blue-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+                  rightIcon={<ArrowRight className="w-3 h-3" />}
+                  className="font-mono text-[10px] font-bold text-blue-300 hover:text-white !p-0 !min-h-0"
                 >
-                  <span>WHY THIS SCORE?</span>
-                  <ArrowRight className="w-3 h-3" />
-                </button>
+                  WHY THIS SCORE?
+                </Button>
 
                 <span className="font-mono text-[9px] text-slate-400">
                   {plan.completedSitesCount}/{plan.totalSitesCount} Sites

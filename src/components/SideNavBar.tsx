@@ -9,9 +9,9 @@ import {
   Home, 
   Radio, 
   FlaskConical, 
-  Sliders,
-  Layers,
-  BatteryCharging
+  Sliders, 
+  Layers, 
+  BatteryCharging 
 } from 'lucide-react';
 import { NavigationTab } from '../types';
 
@@ -38,7 +38,11 @@ export const SideNavBar: React.FC<SideNavBarProps> = ({
   ];
 
   return (
-    <nav className="bg-white/5 backdrop-blur-xl w-64 border-r border-white/10 flex flex-col justify-between py-5 shrink-0 hidden md:flex h-full select-none">
+    <nav
+      role="navigation"
+      aria-label="Mission Configuration"
+      className="bg-white/5 backdrop-blur-xl w-64 border-r border-white/10 flex flex-col justify-between py-5 shrink-0 hidden md:flex h-full select-none"
+    >
       <div>
         {/* Header */}
         <div className="px-5 mb-5">
@@ -46,7 +50,7 @@ export const SideNavBar: React.FC<SideNavBarProps> = ({
             MISSION CONFIG
           </h2>
           <div className="font-mono text-[10px] text-slate-400 uppercase tracking-widest mt-0.5">
-            V0.48-STABLE · FLIGHT READY
+            V1.0-STABLE · FLIGHT READY
           </div>
         </div>
 
@@ -57,8 +61,10 @@ export const SideNavBar: React.FC<SideNavBarProps> = ({
             return (
               <button
                 key={item.id}
+                type="button"
                 onClick={() => onSelectTab(item.id)}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left transition-all duration-150 group cursor-pointer backdrop-blur-sm ${
+                aria-current={isActive ? 'page' : undefined}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left transition-all duration-150 group cursor-pointer backdrop-blur-sm outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
                   isActive
                     ? 'border-l-2 border-blue-400 bg-blue-500/15 text-blue-300 font-medium shadow-inner'
                     : 'text-slate-300 hover:bg-white/5 hover:text-white border-l-2 border-transparent'

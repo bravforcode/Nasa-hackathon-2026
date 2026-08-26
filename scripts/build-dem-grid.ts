@@ -43,9 +43,9 @@ function worldToSrcPx(xM: number, yM: number): { col: number; row: number } {
 }
 
 // --- Output grid ------------------------------------------------------------
-const POST_M = 480;
-const HALF_KM = 125;
-const N = Math.floor((HALF_KM * 2000) / POST_M) + 1; // 521 posts across 250 km
+const POST_M = 960;
+const HALF_KM = 305;
+const N = Math.floor((HALF_KM * 2000) / POST_M) + 1; // 636 posts across 610 km
 const ORIGIN_M = -((N - 1) / 2) * POST_M;            // y/x at index 0
 
 const out = new Int16Array(N * N);
@@ -107,7 +107,7 @@ const body = `export const DEM_GRID = {
     scale: ${SCALE},
     minH: ${minH.toFixed(1)},
     maxH: ${maxH.toFixed(1)},
-    srcLabel: 'LOLA GDR V1.0 LDEM_80S_80M (240->480 m avg-pooled)',
+    srcLabel: 'LOLA GDR V1.0 LDEM_80S_80M (${SRC_POST_M}->${POST_M} m avg-pooled)',
   },
   dnBase64:
     '${b64}',

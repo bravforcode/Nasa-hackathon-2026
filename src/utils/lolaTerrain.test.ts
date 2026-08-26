@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// @ts-expect-error — no type declarations available for 'bun:test'
 import { describe, expect, test } from 'bun:test';
 
 import {

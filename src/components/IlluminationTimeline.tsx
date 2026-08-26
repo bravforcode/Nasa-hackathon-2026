@@ -20,13 +20,33 @@ export const IlluminationTimeline: React.FC<IlluminationTimelineProps> = ({
   const currentHour = Math.round(((playheadPercent - 50) / 50) * 24);
   const orbitalAngle = Math.round((playheadPercent / 100) * 360);
 
+  const updateScrub = (newPercent: number) => {
+    const clamped = Math.max(0, Math.min(100, newPercent));
+    setPlayheadPercent(clamped);
+    if (onScrubTime) {
+      onScrubTime(Math.round(((clamped - 50) / 50) * 24));
+    }
+  };
+
   const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
-    const newPercent = Math.max(0, Math.min(100, (clickX / rect.width) * 100));
-    setPlayheadPercent(newPercent);
-    if (onScrubTime) {
-      onScrubTime(Math.round(((newPercent - 50) / 50) * 24));
+    updateScrub((clickX / rect.width) * 100);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      updateScrub(playheadPercent - (e.shiftKey ? 10 : 2));
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      updateScrub(playheadPercent + (e.shiftKey ? 10 : 2));
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      updateScrub(0);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      updateScrub(100);
     }
   };
 
@@ -56,8 +76,16 @@ export const IlluminationTimeline: React.FC<IlluminationTimelineProps> = ({
 
       {/* Scrubbable Timeline Track */}
       <div 
+        role="slider"
+        tabIndex={0}
+        aria-label="Mission Illumination Timeline scrubber"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={playheadPercent}
+        aria-valuetext={`${currentHour === 0 ? 'T-00:00 (NOW)' : currentHour > 0 ? `T+${currentHour}:00` : `T${currentHour}:00`}`}
         onClick={handleTimelineClick}
-        className="relative w-full h-3 bg-slate-900/80 rounded-full cursor-pointer group overflow-hidden border border-white/10 shadow-inner"
+        onKeyDown={handleKeyDown}
+        className="relative w-full h-3 bg-slate-900/80 rounded-full cursor-pointer group overflow-hidden border border-white/10 shadow-inner outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
       >
         {/* Illumination & Shadow Segment Bars */}
         <div className="absolute inset-0 flex">

@@ -17,9 +17,11 @@ import {
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { RelayNode, ScienceSite, DeadZone, PlanOption, FailureScenarioType, LunarRegion } from '../types';
+import { IconButton, Button } from './ui';
 import { latLonToLocalKm, localKmToLatLon, haversineDistanceKm } from '../utils/powerModel';
 import { ROVER_START, BASE_ALPHA_POS } from '../data/lunarData';
 import { DEFAULT_MAP_ANCHOR } from '../utils/solver';
+import { smoothThrough } from '../utils/path';
 
 // NASA Trek Moon WMTS — LOLA-derived shaded relief (live-verified 2026-08-26).
 // Max native zoom is 5 (z6+ returns 404); Leaflet upscales beyond that.
@@ -186,75 +188,66 @@ export const LunarMap: React.FC<LunarMapProps> = ({
 
       {/* Map Layer Toolbar (Left Floating Rail) */}
       <div className="absolute top-16 left-3.5 z-30 flex flex-col gap-2 bg-white/5 border border-white/10 p-2 rounded-2xl backdrop-blur-2xl shadow-2xl">
-        <button
+        <IconButton
+          icon={<Radio className="w-4 h-4" />}
+          aria-label="Toggle RF Coverage Radii"
+          active={showCoverage}
           onClick={() => setShowCoverage(!showCoverage)}
-          className={`p-2.5 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
-            showCoverage ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40 shadow-inner' : 'text-slate-400 hover:bg-white/10 hover:text-white border border-transparent'
-          }`}
-          title="Toggle RF Coverage Radii"
-        >
-          <Radio className="w-4 h-4" />
-        </button>
+          size="md"
+        />
 
-        <button
+        <IconButton
+          icon={<Layers className="w-4 h-4" />}
+          aria-label="Toggle Line-of-Sight Mesh Links"
+          active={showLinks}
           onClick={() => setShowLinks(!showLinks)}
-          className={`p-2.5 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
-            showLinks ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40 shadow-inner' : 'text-slate-400 hover:bg-white/10 hover:text-white border border-transparent'
-          }`}
-          title="Toggle Line-of-Sight Mesh Links"
-        >
-          <Layers className="w-4 h-4" />
-        </button>
+          size="md"
+        />
 
-        <button
+        <IconButton
+          icon={<Navigation className="w-4 h-4" />}
+          aria-label="Toggle Topographic Slope Contours"
+          active={showContours}
           onClick={() => setShowContours(!showContours)}
-          className={`p-2.5 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
-            showContours ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40 shadow-inner' : 'text-slate-400 hover:bg-white/10 hover:text-white border border-transparent'
-          }`}
-          title="Toggle Topographic Slope Contours"
-        >
-          <Navigation className="w-4 h-4" />
-        </button>
+          size="md"
+        />
 
-        <button
+        <IconButton
+          icon={<Sun className="w-4 h-4" />}
+          aria-label="Toggle Solar Shadow and Peak Exposure"
+          active={showIllumination}
           onClick={() => setShowIllumination(!showIllumination)}
-          className={`p-2.5 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
-            showIllumination ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-inner' : 'text-slate-400 hover:bg-white/10 hover:text-white border border-transparent'
-          }`}
-          title="Toggle Solar Shadow / Peak Exposure"
-        >
-          <Sun className="w-4 h-4" />
-        </button>
+          size="md"
+        />
       </div>
 
       {/* Zoom and Center Controls (Bottom Left) */}
       <div className="absolute bottom-4 left-3.5 z-30 flex items-center gap-1.5 bg-white/5 border border-white/10 p-2 rounded-2xl backdrop-blur-2xl shadow-2xl">
-        <button
+        <IconButton
+          icon={<Plus className="w-3.5 h-3.5" />}
+          aria-label="Zoom in"
           onClick={() => setZoomLevel(prev => Math.min(prev + 0.2, 1.8))}
-          className="w-7 h-7 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-slate-200 flex items-center justify-center font-mono transition-all cursor-pointer"
-          title="Zoom In"
-        >
-          <Plus className="w-3.5 h-3.5" />
-        </button>
+          size="sm"
+        />
         <span className="font-mono text-[11px] text-slate-300 px-1.5 min-w-[36px] text-center font-semibold">
           {Math.round(zoomLevel * 100)}%
         </span>
-        <button
+        <IconButton
+          icon={<Minus className="w-3.5 h-3.5" />}
+          aria-label="Zoom out"
           onClick={() => setZoomLevel(prev => Math.max(prev - 0.2, 0.6))}
-          className="w-7 h-7 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-slate-200 flex items-center justify-center font-mono transition-all cursor-pointer"
-          title="Zoom Out"
-        >
-          <Minus className="w-3.5 h-3.5" />
-        </button>
+          size="sm"
+        />
         <div className="h-4 w-px bg-white/10 mx-1"></div>
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
+          leftIcon={<Crosshair className="w-3.5 h-3.5" />}
           onClick={() => setZoomLevel(1)}
-          className="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-blue-300 text-[11px] font-mono flex items-center gap-1.5 transition-all cursor-pointer"
-          title="Reset Center"
+          className="text-[11px] font-mono !py-1 !px-2.5 !min-h-[32px]"
         >
-          <Crosshair className="w-3 h-3" />
-          <span>Reset</span>
-        </button>
+          Reset
+        </Button>
       </div>
 
       {/* Main Interactive Canvas: Trek tiles under a data-projected SVG layer */}
@@ -415,36 +408,50 @@ export const LunarMap: React.FC<LunarMapProps> = ({
               );
             })()}
 
-            {/* Planned Trajectory Paths (decorative overlays) */}
-            {activePlan === 'safety' && (
-              <path
-                d={`M ${roverPos.x},${roverPos.y} Q 540,420 ${baseAlpha.x},${baseAlpha.y}`}
-                fill="none" stroke="#00FF94" strokeWidth="3.5" strokeLinecap="round" className="animate-dash-slow"
-              />
-            )}
-
-            {activePlan === 'balanced' && (
-              <g>
-                <path
-                  d={`M ${roverPos.x},${roverPos.y} Q 620,240 450,290 T 320,540 T ${baseAlpha.x},${baseAlpha.y}`}
-                  fill="none" stroke="#4C8DFF" strokeWidth="3.5" strokeLinecap="round" className="animate-dash-slow"
-                  style={{ filter: 'drop-shadow(0 0 6px rgba(76,141,255,0.7))' }}
-                />
-                <circle cx="450" cy="290" r="3" fill="#ffffff" />
-                <circle cx="320" cy="540" r="3" fill="#ffffff" />
-              </g>
-            )}
-
-            {activePlan === 'science' && (
-              <path
-                d={`M ${roverPos.x},${roverPos.y} L 850,380 Q 750,680 480,720 L ${baseAlpha.x},${baseAlpha.y}`}
-                fill="none"
-                stroke={isRelayBFailure ? '#FF4C4C' : '#FFB800'}
-                strokeWidth={isRelayBFailure ? '2.5' : '3.5'}
-                strokeDasharray={isRelayBFailure ? '4 4' : 'none'}
-                strokeLinecap="round"
-              />
-            )}
+            {/* Planned Trajectory Paths — computed from projected rover/base/science waypoints */}
+            {(() => {
+              const sitePos = (id: string) => {
+                const s = scienceSites.find(x => x.id === id);
+                return s ? project(s.lat, s.lon) : null;
+              };
+              const beta = sitePos('site_beta');
+              const alpha = sitePos('site_alpha');
+              const echo = sitePos('site_echo');
+              const safetyWaypoints = [
+                { x: roverPos.x, y: roverPos.y },
+                { x: (roverPos.x + baseAlpha.x) / 2 + 30, y: (roverPos.y + baseAlpha.y) / 2 - 40 },
+                { x: baseAlpha.x, y: baseAlpha.y },
+              ];
+              const balancedWaypoints = [
+                { x: roverPos.x, y: roverPos.y },
+                beta ?? { x: 450, y: 290 },
+                alpha ?? { x: 320, y: 540 },
+                { x: baseAlpha.x, y: baseAlpha.y },
+              ];
+              const scienceWaypoints = [
+                { x: roverPos.x, y: roverPos.y },
+                beta ?? { x: 680, y: 320 },
+                echo ? { x: echo.x + 40, y: echo.y + 30 } : { x: 850, y: 380 },
+                { x: 480, y: 720 },
+                { x: baseAlpha.x, y: baseAlpha.y },
+              ];
+              if (activePlan === 'safety') {
+                return <path d={smoothThrough(safetyWaypoints)} fill="none" stroke="#00FF94" strokeWidth="3.5" strokeLinecap="round" className="animate-dash-slow" />;
+              }
+              if (activePlan === 'balanced') {
+                return (
+                  <g>
+                    <path d={smoothThrough(balancedWaypoints)} fill="none" stroke="#4C8DFF" strokeWidth="3.5" strokeLinecap="round" className="animate-dash-slow" style={{ filter: 'drop-shadow(0 0 6px rgba(76,141,255,0.7))' }} />
+                    <circle cx={balancedWaypoints[1].x} cy={balancedWaypoints[1].y} r="3" fill="#ffffff" />
+                    <circle cx={balancedWaypoints[2].x} cy={balancedWaypoints[2].y} r="3" fill="#ffffff" />
+                  </g>
+                );
+              }
+              if (activePlan === 'science') {
+                return <path d={smoothThrough(scienceWaypoints)} fill="none" stroke={isRelayBFailure ? '#FF4C4C' : '#FFB800'} strokeWidth={isRelayBFailure ? '2.5' : '3.5'} strokeDasharray={isRelayBFailure ? '4 4' : 'none'} strokeLinecap="round" />;
+              }
+              return null;
+            })()}
 
             {/* Science Sites — projected from their real lat/lon */}
             {scienceSites.map((site) => {

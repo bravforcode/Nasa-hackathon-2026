@@ -6,48 +6,82 @@
 import React, { useState } from 'react';
 import {
   AlertTriangle,
-  Loader2
+  Radio,
+  Sliders,
+  Sparkles,
+  Zap,
+  Shield,
+  Layers,
+  Search,
+  ExternalLink,
 } from 'lucide-react';
+import { Button, IconButton, Input, Card, Modal } from './ui';
 
 export const ComponentLibraryView: React.FC = () => {
   const [thrusterOutput, setThrusterOutput] = useState<number>(72);
   const [coordsInput, setCoordsInput] = useState<string>('89.123, -45.678');
-  const [, setLoadingButton] = useState<string | null>(null);
+  const [loadingBtn, setLoadingBtn] = useState<string | null>(null);
+  const [activeLayers, setActiveLayers] = useState<Record<string, boolean>>({
+    coverage: true,
+    links: false,
+    contour: true,
+  });
+  const [isDemoModalOpen, setIsDemoModalOpen] = useState<boolean>(false);
 
   const simulateLoading = (btnType: string) => {
-    setLoadingButton(btnType);
-    setTimeout(() => setLoadingButton(null), 2000);
+    setLoadingBtn(btnType);
+    setTimeout(() => setLoadingBtn(null), 1800);
+  };
+
+  const toggleLayer = (layer: string) => {
+    setActiveLayers((prev) => ({ ...prev, [layer]: !prev[layer] }));
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6 max-w-6xl mx-auto w-full font-mono">
+    <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-8 max-w-6xl mx-auto w-full font-mono">
       {/* Title */}
       <div className="border-b border-white/10 pb-4">
-        <h1 className="font-headline font-bold text-2xl md:text-3xl text-white">
-          Component Library
-        </h1>
-        <p className="text-xs text-slate-400 mt-1">
-          LUNAR RELAY OS — FROSTED GLASS DESIGN SYSTEM & TELEMETRY MATRIX (V0.48-STABLE)
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="font-headline font-bold text-2xl md:text-3xl text-white">
+              Component Library
+            </h1>
+            <p className="text-xs text-slate-400 mt-1">
+              LUNAR RELAY OS — LIVING DESIGN TOKEN & PRIMITIVE MATRIX (V1.0-STABLE)
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<Sparkles className="w-3.5 h-3.5 text-blue-400" />}
+            onClick={() => setIsDemoModalOpen(true)}
+          >
+            Launch Interactive Modal Demo
+          </Button>
+        </div>
       </div>
 
-      {/* Buttons Matrix */}
-      <section className="bg-white/5 border border-white/10 rounded-2xl p-5 md:p-6 space-y-4 shadow-xl backdrop-blur-2xl">
+      {/* Primitives Section 1: Buttons Matrix */}
+      <Card variant="default" padding="md" className="space-y-4">
         <header className="text-xs font-bold text-blue-300 border-b border-white/10 pb-3 flex items-center justify-between">
-          <span>BUTTONS_MATRIX</span>
-          <span className="text-[10px] text-slate-400 font-normal">Standard / Hover / Active / Disabled / Loading</span>
+          <span className="flex items-center gap-2">
+            <Radio className="w-3.5 h-3.5 text-blue-400" />
+            BUTTON_PRIMITIVES_MATRIX
+          </span>
+          <span className="text-[10px] text-slate-400 font-normal">
+            Real &lt;Button&gt; Primitives with Live State
+          </span>
         </header>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[700px]">
             <thead>
               <tr className="text-[11px] text-slate-400 border-b border-white/10">
-                <th className="py-2.5 font-bold uppercase">Type / State</th>
-                <th className="py-2.5 font-normal">Default</th>
-                <th className="py-2.5 font-normal">Hover State</th>
-                <th className="py-2.5 font-normal">Active State</th>
-                <th className="py-2.5 font-normal">Disabled</th>
-                <th className="py-2.5 font-normal">Loading</th>
+                <th className="py-2.5 font-bold uppercase">Variant</th>
+                <th className="py-2.5 font-normal">Interactive Default</th>
+                <th className="py-2.5 font-normal">With Icon</th>
+                <th className="py-2.5 font-normal">Disabled State</th>
+                <th className="py-2.5 font-normal">Loading State</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-xs">
@@ -55,36 +89,36 @@ export const ComponentLibraryView: React.FC = () => {
               <tr>
                 <td className="py-3.5 text-white">
                   <div className="font-bold">Primary</div>
-                  <span className="text-slate-400 text-[10px]">Ion Blue</span>
+                  <span className="text-blue-400 text-[10px]">Ion Blue</span>
                 </td>
                 <td className="py-3.5">
-                  <button 
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    loading={loadingBtn === 'primary'}
                     onClick={() => simulateLoading('primary')}
-                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all shadow-md shadow-blue-500/20 cursor-pointer"
                   >
-                    Deploy
-                  </button>
+                    Deploy Route
+                  </Button>
                 </td>
                 <td className="py-3.5">
-                  <button className="bg-blue-500 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-md shadow-blue-500/30">
-                    Deploy
-                  </button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    leftIcon={<Zap className="w-3.5 h-3.5" />}
+                  >
+                    Engage
+                  </Button>
                 </td>
                 <td className="py-3.5">
-                  <button className="bg-blue-600 text-white font-bold px-4 py-2 rounded-xl text-xs ring-2 ring-blue-300">
-                    Deploy
-                  </button>
+                  <Button variant="primary" size="sm" disabled>
+                    Deploy Route
+                  </Button>
                 </td>
                 <td className="py-3.5">
-                  <button disabled className="bg-blue-600/30 text-white/40 font-bold px-4 py-2 rounded-xl text-xs cursor-not-allowed border border-white/5">
-                    Deploy
-                  </button>
-                </td>
-                <td className="py-3.5">
-                  <button className="bg-blue-600 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-blue-500/20">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Deploy</span>
-                  </button>
+                  <Button variant="primary" size="sm" loading>
+                    Deploy Route
+                  </Button>
                 </td>
               </tr>
 
@@ -95,33 +129,33 @@ export const ComponentLibraryView: React.FC = () => {
                   <span className="text-slate-400 text-[10px]">Frosted Outlined</span>
                 </td>
                 <td className="py-3.5">
-                  <button 
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    loading={loadingBtn === 'secondary'}
                     onClick={() => simulateLoading('secondary')}
-                    className="border border-white/10 bg-white/5 text-slate-200 px-4 py-2 rounded-xl text-xs hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer backdrop-blur-md"
                   >
                     Calibrate
-                  </button>
+                  </Button>
                 </td>
                 <td className="py-3.5">
-                  <button className="border border-white/25 bg-white/10 text-white px-4 py-2 rounded-xl text-xs backdrop-blur-md">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    leftIcon={<Sliders className="w-3.5 h-3.5" />}
+                  >
+                    Configure
+                  </Button>
+                </td>
+                <td className="py-3.5">
+                  <Button variant="secondary" size="sm" disabled>
                     Calibrate
-                  </button>
+                  </Button>
                 </td>
                 <td className="py-3.5">
-                  <button className="border border-blue-400 bg-blue-500/20 text-white px-4 py-2 rounded-xl text-xs ring-1 ring-blue-400">
+                  <Button variant="secondary" size="sm" loading>
                     Calibrate
-                  </button>
-                </td>
-                <td className="py-3.5">
-                  <button disabled className="border border-white/5 bg-white/[0.02] text-slate-600 px-4 py-2 rounded-xl text-xs cursor-not-allowed">
-                    Calibrate
-                  </button>
-                </td>
-                <td className="py-3.5">
-                  <button className="border border-white/10 bg-white/5 text-slate-200 px-4 py-2 rounded-xl text-xs flex items-center gap-1.5">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-300" />
-                    <span>Calibrate</span>
-                  </button>
+                  </Button>
                 </td>
               </tr>
 
@@ -132,30 +166,33 @@ export const ComponentLibraryView: React.FC = () => {
                   <span className="text-slate-400 text-[10px]">Text Only</span>
                 </td>
                 <td className="py-3.5">
-                  <button className="text-blue-300 hover:text-white px-3 py-1.5 rounded-xl text-xs hover:bg-white/5 transition-all cursor-pointer">
+                  <Button
+                    variant="tertiary"
+                    size="sm"
+                    loading={loadingBtn === 'tertiary'}
+                    onClick={() => simulateLoading('tertiary')}
+                  >
                     Cancel
-                  </button>
+                  </Button>
                 </td>
                 <td className="py-3.5">
-                  <button className="text-white bg-white/10 px-3 py-1.5 rounded-xl text-xs">
-                    Cancel
-                  </button>
+                  <Button
+                    variant="tertiary"
+                    size="sm"
+                    rightIcon={<ExternalLink className="w-3.5 h-3.5" />}
+                  >
+                    Details
+                  </Button>
                 </td>
                 <td className="py-3.5">
-                  <button className="text-blue-400 px-3 py-1.5 rounded-xl text-xs underline font-bold">
+                  <Button variant="tertiary" size="sm" disabled>
                     Cancel
-                  </button>
+                  </Button>
                 </td>
                 <td className="py-3.5">
-                  <button disabled className="text-slate-600 px-3 py-1.5 rounded-xl text-xs cursor-not-allowed">
+                  <Button variant="tertiary" size="sm" loading>
                     Cancel
-                  </button>
-                </td>
-                <td className="py-3.5">
-                  <button className="text-blue-300 px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5">
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    <span>Cancel</span>
-                  </button>
+                  </Button>
                 </td>
               </tr>
 
@@ -166,49 +203,105 @@ export const ComponentLibraryView: React.FC = () => {
                   <span className="text-red-400 text-[10px]">Flare Red</span>
                 </td>
                 <td className="py-3.5">
-                  <button 
-                    onClick={() => simulateLoading('abort')}
-                    className="bg-red-500/20 border border-red-500/40 hover:bg-red-500/30 text-red-300 font-bold px-4 py-2 rounded-xl text-xs transition-all cursor-pointer backdrop-blur-md"
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    loading={loadingBtn === 'destructive'}
+                    onClick={() => simulateLoading('destructive')}
                   >
-                    Abort
-                  </button>
+                    Abort Mission
+                  </Button>
                 </td>
                 <td className="py-3.5">
-                  <button className="bg-red-500/35 border border-red-500/60 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-md shadow-red-500/20">
-                    Abort
-                  </button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    leftIcon={<AlertTriangle className="w-3.5 h-3.5" />}
+                  >
+                    Purge
+                  </Button>
                 </td>
                 <td className="py-3.5">
-                  <button className="bg-red-500/40 text-white font-bold px-4 py-2 rounded-xl text-xs ring-2 ring-red-400">
-                    Abort
-                  </button>
+                  <Button variant="destructive" size="sm" disabled>
+                    Abort Mission
+                  </Button>
                 </td>
                 <td className="py-3.5">
-                  <button disabled className="bg-red-500/10 border border-red-500/20 text-red-400/40 font-bold px-4 py-2 rounded-xl text-xs cursor-not-allowed">
-                    Abort
-                  </button>
-                </td>
-                <td className="py-3.5">
-                  <button className="bg-red-500/20 border border-red-500/40 text-red-300 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Abort</span>
-                  </button>
+                  <Button variant="destructive" size="sm" loading>
+                    Abort Mission
+                  </Button>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-      </section>
+      </Card>
 
-      {/* Grid: Inputs & Alerts + Diagnostics Radar */}
+      {/* Primitives Section 2: Icon Buttons & Toggles */}
+      <Card variant="default" padding="md" className="space-y-4">
+        <header className="text-xs font-bold text-blue-300 border-b border-white/10 pb-3 flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <Layers className="w-3.5 h-3.5 text-blue-400" />
+            ICON_BUTTON_PRIMITIVES (44px WCAG Target & Toggle States)
+          </span>
+          <span className="text-[10px] text-slate-400 font-normal">
+            aria-label enforced + aria-pressed states
+          </span>
+        </header>
+
+        <div className="flex flex-wrap items-center gap-4 pt-1">
+          <div className="flex items-center gap-3 bg-black/30 p-3 rounded-xl border border-white/10">
+            <span className="text-xs text-slate-400">Map Layer Toggles:</span>
+            <IconButton
+              icon={<Shield className="w-4 h-4" />}
+              aria-label="Coverage Heatmap"
+              active={activeLayers.coverage}
+              onClick={() => toggleLayer('coverage')}
+            />
+            <IconButton
+              icon={<Radio className="w-4 h-4" />}
+              aria-label="RF Line of Sight"
+              active={activeLayers.links}
+              onClick={() => toggleLayer('links')}
+            />
+            <IconButton
+              icon={<Layers className="w-4 h-4" />}
+              aria-label="DEM Elevation Contours"
+              active={activeLayers.contour}
+              onClick={() => toggleLayer('contour')}
+            />
+          </div>
+
+          <div className="flex items-center gap-3 bg-black/30 p-3 rounded-xl border border-white/10">
+            <span className="text-xs text-slate-400">Solid / Ghost:</span>
+            <IconButton
+              variant="solid"
+              icon={<Zap className="w-4 h-4" />}
+              aria-label="Power boost trigger"
+            />
+            <IconButton
+              variant="ghost"
+              icon={<Search className="w-4 h-4" />}
+              aria-label="Search telemetry"
+            />
+            <IconButton
+              disabled
+              icon={<Shield className="w-4 h-4" />}
+              aria-label="Locked feature"
+            />
+          </div>
+        </div>
+      </Card>
+
+      {/* Grid: Inputs & Diagnostics Radar */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Panel 1: Input & Alerts */}
-        <section className="bg-white/5 border border-white/10 rounded-2xl p-5 md:p-6 space-y-4 shadow-xl backdrop-blur-2xl">
+        {/* Panel 1: Accessible Input Components */}
+        <Card variant="default" padding="md" className="space-y-4">
           <header className="text-xs font-bold text-blue-300 border-b border-white/10 pb-2">
-            INPUT_&_ALERTS
+            ACCESSIBLE_INPUT_PRIMITIVES
           </header>
 
-          {/* Alert Banner Component */}
+          {/* Alert Banner */}
           <div className="bg-red-500/10 border-l-4 border-red-500 border border-red-500/20 p-3.5 rounded-2xl flex items-start gap-3 backdrop-blur-xl">
             <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
             <div>
@@ -221,7 +314,7 @@ export const ComponentLibraryView: React.FC = () => {
             </div>
           </div>
 
-          {/* Slider Component */}
+          {/* Slider */}
           <div className="space-y-2 pt-2">
             <div className="flex justify-between items-center text-xs">
               <span className="text-slate-400 uppercase tracking-wider">Thruster Output</span>
@@ -233,6 +326,7 @@ export const ComponentLibraryView: React.FC = () => {
               max="100"
               value={thrusterOutput}
               onChange={(e) => setThrusterOutput(Number(e.target.value))}
+              aria-label="Thruster Output"
               className="w-full accent-blue-400 h-2 bg-white/10 rounded-lg cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-slate-400 font-mono">
@@ -241,22 +335,25 @@ export const ComponentLibraryView: React.FC = () => {
             </div>
           </div>
 
-          {/* Input Component */}
-          <div className="space-y-1.5 pt-1">
-            <label className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
-              Coordinates (LAT / LONG)
-            </label>
-            <input
-              type="text"
-              value={coordsInput}
-              onChange={(e) => setCoordsInput(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-400 backdrop-blur-md"
-            />
-          </div>
-        </section>
+          {/* Real Input Primitive */}
+          <Input
+            label="TARGET COORDINATES (LAT / LONG)"
+            value={coordsInput}
+            onChange={(e) => setCoordsInput(e.target.value)}
+            hint="Format: [-90.0, +90.0] signed degrees"
+            leftIcon={<Search className="w-4 h-4" />}
+          />
+
+          <Input
+            label="RELAY TRANSMITTER POWER"
+            defaultValue="50.0 W"
+            inputSize="sm"
+            hint="Nominal S-band EIRP link margin"
+          />
+        </Card>
 
         {/* Panel 2: System Diagnostics Radar */}
-        <section className="bg-white/5 border border-white/10 rounded-2xl p-5 md:p-6 space-y-4 shadow-xl flex flex-col justify-between backdrop-blur-2xl">
+        <Card variant="default" padding="md" className="space-y-4 flex flex-col justify-between">
           <header className="text-xs font-bold text-blue-300 border-b border-white/10 pb-2">
             SYS_DIAGNOSTICS_RADAR
           </header>
@@ -304,14 +401,47 @@ export const ComponentLibraryView: React.FC = () => {
 
           <div className="flex justify-between items-center text-[10px] text-slate-400 border-t border-white/10 pt-3">
             <span className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-sm bg-blue-400 shadow-sm" /> Nominal System Telemetry
+              <span className="w-2.5 h-2.5 rounded-sm bg-blue-400 shadow-sm" /> Nominal Telemetry
             </span>
             <span className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-sm border border-red-400 bg-red-400/20" /> Stress Condition
             </span>
           </div>
-        </section>
+        </Card>
       </div>
+
+      {/* Interactive Modal Primitive Demo */}
+      <Modal
+        isOpen={isDemoModalOpen}
+        onClose={() => setIsDemoModalOpen(false)}
+        title="Interactive Modal Primitive Demo"
+        description="Shared accessible Modal shell with backdrop blur, focus trap, and Escape dismissal"
+        footer={
+          <>
+            <Button variant="tertiary" size="sm" onClick={() => setIsDemoModalOpen(false)}>
+              Dismiss
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => setIsDemoModalOpen(false)}>
+              Confirm Telemetry Lock
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4 text-xs text-slate-300 leading-relaxed font-sans">
+          <p>
+            This modal is rendered using the centralized <code className="font-mono text-blue-400">&lt;Modal /&gt;</code> primitive from <code className="font-mono text-slate-200">src/components/ui/Modal.tsx</code>.
+          </p>
+          <div className="p-3.5 bg-black/40 rounded-xl border border-white/10 space-y-2 font-mono">
+            <div className="text-blue-300 font-bold text-[11px]">WCAG 2.2 AA VERIFICATION:</div>
+            <ul className="list-disc list-inside space-y-1 text-slate-400 text-[11px]">
+              <li>Keyboard trap active (Tab cycles within modal only)</li>
+              <li>Escape key automatically triggers dismissal</li>
+              <li>Clicking the backdrop dismisses dialog</li>
+              <li>Focus is restored to the opener button upon closing</li>
+            </ul>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

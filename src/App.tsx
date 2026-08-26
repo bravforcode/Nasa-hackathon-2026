@@ -9,7 +9,9 @@ import {
   SCIENCE_SITES,
   INITIAL_DEAD_ZONES,
   LUNAR_REGIONS,
-  MITIGATION_RELAY_CANDIDATE
+  MITIGATION_RELAY_CANDIDATE,
+  ROVER_START,
+  BASE_ALPHA_POS,
 } from './data/lunarData';
 import {
   RelayNode,
@@ -26,10 +28,13 @@ import { fetchCmrCollections } from './services/nasa/cmr';
 import type { ExplanationState } from './services/gemini/explain';
 import { sepSeverityFromFlares, type SepSeverityLevel } from './utils/powerModel';
 import { loadSavedState, saveState, clearSavedState } from './utils/persist';
+import { loadDemTerrain } from './utils/terrainRuntime';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 // Components
 import { TopAppBar } from './components/TopAppBar';
 import { SideNavBar } from './components/SideNavBar';
+import { BottomNavBar } from './components/BottomNavBar';
 import { LunarMap } from './components/LunarMap';
 import { TelemetryCards } from './components/TelemetryCards';
 import { RecoveryCards } from './components/RecoveryCards';
@@ -47,7 +52,7 @@ import { IlluminationTimeline } from './components/IlluminationTimeline';
 export type SepSeverity = { level: SepSeverityLevel; multiplier: number };
 export type CmrInfo = { count: number; titles: string[]; fetchedAt: string } | { error: true };
 
-export function App() {
+function AppContent() {
   // Navigation
   const [activeTab, setActiveTab] = useState<NavigationTab>('region');
 
@@ -99,149 +104,204 @@ export function App() {
   const [sepSeverity, setSepSeverity] = useState<SepSeverity>({ level: 'low', multiplier: 1.0 });
   const [sepStatus, setSepStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
 
-  // Live CMR collection metadata (provenance panel) — fetched once on mount
-  const [cmrInfo, setCmrInfo] = useState<CmrInfo | null>(null);
-
   useEffect(() => {
-    let cancelled = false;
-    fetchCmrCollections('LOLA', 5)
-      .then((r) => {
-        if (cancelled) return;
-        setCmrInfo({ count: r.hits, titles: r.titles.slice(0, 3), fetchedAt: new Date().toISOString() });
-      })
-      .catch(() => {
-        if (!cancelled) setCmrInfo({ error: true });
-      });
-    return () => { cancelled = true; };
-  }, []);
-
-  useEffect(() => {
-    if (activeScenario !== 'space_weather') return;
+    if (activeScenario !== 'space_weather') {
+      setSepSeverity({ level: 'low', multiplier: 1.0 });
+      setSepStatus('idle');
+      return;
+    }
     let cancelled = false;
     setSepStatus('loading');
-    fetchRecentSpaceWeather(14)
+    fetchRecentSpaceWeather()
       .then(({ flares }) => {
         if (cancelled) return;
-        setSepSeverity(sepSeverityFromFlares(flares));
+        const severity = sepSeverityFromFlares(flares);
+        setSepSeverity(severity);
         setSepStatus('ok');
       })
       .catch(() => {
         if (cancelled) return;
-        // Reset to quiet so a stale severe multiplier never outlives its data.
-        setSepSeverity({ level: 'low', multiplier: 1.0 });
+        // Flight rule default under API outage: assume moderate risk
+        setSepSeverity({ level: 'moderate', multiplier: 1.15 });
         setSepStatus('error');
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [activeScenario]);
 
-  // Modals & Panels
+  // Lazy DEM terrain upgrade — dynamic import keeps 1 MB grid out of main bundle
+  const [demReady, setDemReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    loadDemTerrain()
+      .then(() => {
+        if (!cancelled) setDemReady(true);
+      })
+      .catch(() => {
+        // Keep synthetic fallback
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Live NASA CMR data discovery (South Pole collections for active region)
+  const [cmrInfo, setCmrInfo] = useState<CmrInfo | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchCmrCollections('LOLA south pole elevation')
+      .then(res => {
+        if (cancelled) return;
+        setCmrInfo({
+          count: res.hits,
+          titles: res.titles.slice(0, 3),
+          fetchedAt: new Date().toISOString(),
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setCmrInfo({ error: true });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedRegion]);
+
+  // Modals state
   const [isScenarioModalOpen, setIsScenarioModalOpen] = useState<boolean>(false);
-  const [isExplainabilityOpen, setIsExplainabilityOpen] = useState<boolean>(false);
   const [isDesignAssistOpen, setIsDesignAssistOpen] = useState<boolean>(false);
   const [isBriefingOpen, setIsBriefingOpen] = useState<boolean>(false);
+  const [isExplainabilityOpen, setIsExplainabilityOpen] = useState<boolean>(false);
   const [isRegionModalOpen, setIsRegionModalOpen] = useState<boolean>(false);
   const [isHabitatModalOpen, setIsHabitatModalOpen] = useState<boolean>(false);
   const [isScienceModalOpen, setIsScienceModalOpen] = useState<boolean>(false);
   const [isConstraintsModalOpen, setIsConstraintsModalOpen] = useState<boolean>(false);
 
-  // Synchronize Relays based on scenario and mitigation.
-  // NOTE: the Apex candidate node is appended here when deployed — it is NOT
-  // part of INITIAL_RELAYS, so the coverage geometry actually gains a relay.
+  // Computed Relay Fleet based on scenario & mitigation
   const currentRelays = useMemo(() => {
-    const fleet: RelayNode[] = isMitigationActive
-      ? [...relays, { ...MITIGATION_RELAY_CANDIDATE }]
-      : relays;
-    return fleet.map(r => {
-      if (r.id === 'relay_bravo') {
-        return {
-          ...r,
-          status: activeScenario === 'relay_failure' ? 'offline' : 'active',
-          healthPercent: activeScenario === 'relay_failure' ? 0 : 94,
-        } as RelayNode;
-      }
-      if (r.id === 'relay_shackleton_apex') {
-        return {
-          ...r,
-          status: isMitigationActive ? 'active' : 'candidate',
-          healthPercent: isMitigationActive ? 100 : 0,
-        } as RelayNode;
+    let list = relays.map(r => {
+      if (activeScenario === 'relay_failure' && r.id === 'relay_bravo') {
+        return { ...r, status: 'offline' as const };
       }
       return r;
     });
+
+    if (isMitigationActive) {
+      list = [...list, { ...MITIGATION_RELAY_CANDIDATE, status: 'active' as const }];
+    }
+
+    return list;
   }, [relays, activeScenario, isMitigationActive]);
 
-  // Live constellation coverage — computed for both mitigation states so the
-  // Design Assist panel can show the REAL delta, not a hardcoded one.
-  const coverageWithoutMitigation = useMemo(() => {
-    return calculateConstellationCoverage(currentRelays, deadZones, false, selectedRegion);
-  }, [currentRelays, deadZones, selectedRegion]);
-
-  const coverageWithMitigation = useMemo(() => {
-    return calculateConstellationCoverage(currentRelays, deadZones, true, selectedRegion);
-  }, [currentRelays, deadZones, selectedRegion]);
-
-  const coveragePercent = isMitigationActive ? coverageWithMitigation : coverageWithoutMitigation;
-
-  // Honest dead-zone counts from real geometry (review I1) — a zone counts as
-  // covered only when an active relay footprint actually contains its center.
-  const deadZonesBefore = useMemo(
-    () => countUncoveredDeadZones(currentRelays, deadZones, false, selectedRegion),
-    [currentRelays, deadZones, selectedRegion]
+  // Solver Context: pure bundle passed to calculateRoutePlans & calculateConstellationCoverage
+  // demReady is a dependency so coverage/radar recompute after DEM lazy-load
+  const solverContext: SolverContext = useMemo(
+    () => ({
+      region: selectedRegion,
+      relays: currentRelays,
+      deadZones,
+      scienceSites,
+      spaceWeatherMultiplier: sepSeverity.multiplier,
+      roverPos: ROVER_START,
+      basePos: BASE_ALPHA_POS,
+      // demReady triggers memo invalidation after terrain upgrade (value unused, dependency only)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      ...(demReady ? {} : {}),
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectedRegion, currentRelays, deadZones, scienceSites, sepSeverity.multiplier, demReady]
   );
-  const deadZonesAfter = useMemo(
-    () => countUncoveredDeadZones(currentRelays, deadZones, true, selectedRegion),
-    [currentRelays, deadZones, selectedRegion]
-  );
-  const deadZonesCount = isMitigationActive ? deadZonesAfter : deadZonesBefore;
 
-  // Calculate dynamic Route Plans using solver (region + fleet + live DONKI aware).
-  // Precomputed coverage (review I4): reuse the exact MC result instead of
-  // re-running the sampler inside the solver.
-  const solverCtx = useMemo<SolverContext>(() => ({
-    region: selectedRegion,
-    relays: currentRelays,
-    deadZones,
-    spaceWeatherMultiplier: sepSeverity.multiplier,
-    precomputedCoverage: coveragePercent,
-  }), [selectedRegion, currentRelays, deadZones, sepSeverity, coveragePercent]);
-
+  // Live calculated route plans — science axis now computed from solverContext.scienceSites
   const routePlans = useMemo(() => {
-    return calculateRoutePlans(activeScenario, sliderValue, isMitigationActive, solverCtx);
-  }, [activeScenario, sliderValue, isMitigationActive, solverCtx]);
+    return calculateRoutePlans(
+      activeScenario,
+      sliderValue,
+      isMitigationActive,
+      solverContext
+    );
+  }, [activeScenario, sliderValue, isMitigationActive, sepSeverity, solverContext]);
 
+  // Selected plan object
   const activePlan = useMemo(() => {
-    return routePlans.find(p => p.id === selectedPlanId) || routePlans[1];
+    return routePlans.find(p => p.id === selectedPlanId) ?? routePlans[0];
   }, [routePlans, selectedPlanId]);
 
-  // Average relay health
+  // Constellation Coverage metric — terrain-aware via getSharedTerrain()
+  const coveragePercent = useMemo(() => {
+    return calculateConstellationCoverage(currentRelays, deadZones, isMitigationActive, selectedRegion);
+  }, [currentRelays, deadZones, isMitigationActive, selectedRegion, demReady]);
+
+  // Live dead-zone count — honest lens-area containment
+  const deadZonesCount = useMemo(() => {
+    return countUncoveredDeadZones(currentRelays, deadZones, isMitigationActive, selectedRegion);
+  }, [currentRelays, deadZones, isMitigationActive, selectedRegion, demReady]);
+
+  // Constellation coverage before/after mitigation (for Design Assist modal)
+  const coverageWithoutMitigation = useMemo(() => {
+    const withoutMit = relays.map(r =>
+      activeScenario === 'relay_failure' && r.id === 'relay_bravo' ? { ...r, status: 'offline' as const } : r
+    );
+    return calculateConstellationCoverage(withoutMit, deadZones, false, selectedRegion);
+  }, [relays, activeScenario, deadZones, selectedRegion, demReady]);
+
+  const coverageWithMitigation = useMemo(() => {
+    const withMit = [
+      ...relays.map(r =>
+        activeScenario === 'relay_failure' && r.id === 'relay_bravo' ? { ...r, status: 'offline' as const } : r
+      ),
+      { ...MITIGATION_RELAY_CANDIDATE, status: 'active' as const },
+    ];
+    return calculateConstellationCoverage(withMit, deadZones, true, selectedRegion);
+  }, [relays, activeScenario, deadZones, selectedRegion, demReady]);
+
+  const deadZonesBefore = useMemo(() => {
+    const withoutMit = relays.map(r =>
+      activeScenario === 'relay_failure' && r.id === 'relay_bravo' ? { ...r, status: 'offline' as const } : r
+    );
+    return countUncoveredDeadZones(withoutMit, deadZones, false, selectedRegion);
+  }, [relays, activeScenario, deadZones, selectedRegion, demReady]);
+
+  const deadZonesAfter = useMemo(() => {
+    const withMit = [
+      ...relays.map(r =>
+        activeScenario === 'relay_failure' && r.id === 'relay_bravo' ? { ...r, status: 'offline' as const } : r
+      ),
+      { ...MITIGATION_RELAY_CANDIDATE, status: 'active' as const },
+    ];
+    return countUncoveredDeadZones(withMit, deadZones, true, selectedRegion);
+  }, [relays, activeScenario, deadZones, selectedRegion, demReady]);
+
+  // Relay fleet health average
   const relayHealthAvg = useMemo(() => {
-    const activeNodes = currentRelays.filter(r => r.status === 'active' || r.status === 'offline');
-    if (activeNodes.length === 0) return 0;
-    const total = activeNodes.reduce((acc, curr) => acc + curr.healthPercent, 0);
-    return Math.round(total / activeNodes.length);
+    const activeCount = currentRelays.filter(r => r.status === 'active').length;
+    return Math.round((activeCount / currentRelays.length) * 100);
   }, [currentRelays]);
 
-  // Live state snapshot for the AI/deterministic explainer
-  const explanationInput = useMemo<ExplanationState>(() => ({
-    regionName: selectedRegion.name,
-    illuminationPercent: selectedRegion.illuminationAvg,
-    scenario: activeScenario,
-    planName: activePlan?.name ?? '',
-    coveragePercent,
-    batteryMarginPercent: activePlan?.batteryMarginPercent ?? 0,
-    viabilityPercent: activePlan?.viabilityPercent ?? 0,
-    minSignalDbm: activePlan?.minSignalDbm ?? 0,
-    relaysActive: currentRelays.filter(r => r.status === 'active').length,
-    relaysTotal: currentRelays.filter(r => r.type !== 'orbital_lunanet').length,
-    deadZonesCount,
-  }), [selectedRegion, activeScenario, activePlan, coveragePercent, currentRelays, deadZonesCount]);
+  // Explanation input for Gemini — must match services/gemini/explain.ts contract
+  const explanationInput: ExplanationState = useMemo(
+    () => ({
+      regionName: selectedRegion.name,
+      illuminationPercent: selectedRegion.illuminationAvg,
+      scenario: activeScenario,
+      planName: activePlan.name,
+      coveragePercent,
+      batteryMarginPercent: activePlan.batteryMarginPercent,
+      viabilityPercent: activePlan.viabilityPercent,
+      minSignalDbm: activePlan.minSignalDbm,
+      relaysActive: currentRelays.filter(r => r.status === 'active').length,
+      relaysTotal: currentRelays.filter(r => r.type !== 'orbital_lunanet').length,
+      deadZonesCount,
+    }),
+    [selectedRegion, activeScenario, activePlan, coveragePercent, currentRelays, deadZonesCount]
+  );
 
-  // Handle Tab Selection
   const handleSelectTab = (tab: NavigationTab) => {
     setActiveTab(tab);
     if (tab === 'region') setIsRegionModalOpen(true);
     if (tab === 'habitat') setIsHabitatModalOpen(true);
-    if (tab === 'relay') setIsDesignAssistOpen(true);
     if (tab === 'science') setIsScienceModalOpen(true);
     if (tab === 'constraints') setIsConstraintsModalOpen(true);
   };
@@ -258,19 +318,16 @@ export function App() {
     }));
   };
 
-  // Drag a relay on the map → update its real lat/lon; every memo downstream
-  // (coverage, route plans) recomputes automatically.
   const handleMoveRelay = (relayId: string, lat: number, lon: number) => {
     setRelays(prev => prev.map(r => (r.id === relayId ? { ...r, lat, lon } : r)));
   };
 
-  // Drag a dead zone → update map percentages; coverage geometry follows.
   const handleMoveDeadZone = (zoneId: string, xPercent: number, yPercent: number) => {
     setDeadZones(prev => prev.map(d => (d.id === zoneId ? { ...d, xPercent, yPercent } : d)));
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#02040a] text-slate-100 antialiased relative selection:bg-blue-500/30 selection:text-white">
+    <div className="flex flex-col min-h-dvh w-full overflow-x-hidden md:h-screen md:overflow-hidden bg-bg text-text antialiased relative selection:bg-accent/30 selection:text-white pb-14 md:pb-0">
       {/* Ambient Lighting Orbs for Frosted Glass Background */}
       <div className="fixed inset-0 z-0 pointer-events-none opacity-40 overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] max-w-[700px] max-h-[700px] bg-blue-900/30 rounded-full blur-[120px]"></div>
@@ -288,12 +345,13 @@ export function App() {
           onOpenBriefing={() => setIsBriefingOpen(true)}
           onOpenProvenance={() => setIsExplainabilityOpen(true)}
           onOpenScenarioModal={() => setIsScenarioModalOpen(true)}
+          onOpenSettings={() => setIsConstraintsModalOpen(true)}
         />
       </div>
 
       {/* Main Body Workspace */}
       <div className="flex flex-1 overflow-hidden relative z-10">
-        {/* Left Navigation Rail */}
+        {/* Left Navigation Rail (Desktop) */}
         <SideNavBar
           activeTab={activeTab}
           onSelectTab={handleSelectTab}
@@ -305,7 +363,7 @@ export function App() {
         {activeTab === 'components' ? (
           <ComponentLibraryView />
         ) : (
-          <main className="flex-1 flex flex-col overflow-hidden relative p-2 md:p-3 gap-2">
+          <main className="flex-1 flex flex-col overflow-y-auto md:overflow-hidden relative p-2 md:p-3 gap-2">
             {/* Top Workspace Area: 3 Golden KPIs */}
             <div className="z-20 shrink-0">
               <TelemetryCards
@@ -315,14 +373,13 @@ export function App() {
                 distanceKm={activePlan.distanceKm}
                 relays={currentRelays}
                 onForceRecalc={() => {
-                  // Trigger small visual recalculation
                   setSliderValue(v => (v === 50 ? 55 : 50));
                 }}
               />
             </div>
 
             {/* Central Area: Lunar Topographic Map */}
-            <div className="flex-1 relative min-h-[280px] rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-slate-950/60 backdrop-blur-xl">
+            <div className="flex-1 relative min-h-[320px] md:min-h-[280px] rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-slate-950/60 backdrop-blur-xl">
               <LunarMap
                 relays={currentRelays}
                 scienceSites={scienceSites}
@@ -369,13 +426,19 @@ export function App() {
         />
       </div>
 
-      {/* Bottom Solar Illumination Timeline Bar */}
-      <div className="relative z-30">
+      {/* Bottom Solar Illumination Timeline Bar (Desktop & Tablet) */}
+      <div className="relative z-30 hidden md:block">
         <IlluminationTimeline />
       </div>
 
-      {/* Modals & Dialogs */}
+      {/* Mobile Bottom Navigation Bar */}
+      <BottomNavBar
+        activeTab={activeTab}
+        onSelectTab={handleSelectTab}
+        relayHealthAvg={relayHealthAvg}
+      />
 
+      {/* Modals & Dialogs */}
       <FailureScenarioModal
         isOpen={isScenarioModalOpen}
         onClose={() => setIsScenarioModalOpen(false)}
@@ -427,6 +490,14 @@ export function App() {
         onClose={() => setIsConstraintsModalOpen(false)}
       />
     </div>
+  );
+}
+
+export function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }
 

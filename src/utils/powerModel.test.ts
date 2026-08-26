@@ -5,7 +5,6 @@
 
 // bun:test ships no type declarations in this repo (no bun-types dependency);
 // suppress the module-resolution error for tsc while bun resolves it natively.
-// @ts-expect-error — no type declarations available for 'bun:test'
 import { describe, expect, test } from 'bun:test';
 
 import {

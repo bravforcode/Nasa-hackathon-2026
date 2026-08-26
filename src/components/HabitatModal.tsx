@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { Home, Save } from 'lucide-react';
+import { Modal, Button, Input } from './ui';
 
 interface HabitatModalProps {
   isOpen: boolean;
@@ -16,105 +17,75 @@ export const HabitatModal: React.FC<HabitatModalProps> = ({ isOpen, onClose }) =
   const [habCoords, setHabCoords] = useState<string>('89.12°S 17.54°E');
   const [powerReserve, setPowerReserve] = useState<number>(84);
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-      <div className="bg-[#0e1321] border border-[#424753] rounded-xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col font-mono">
-        <div className="p-4 md:p-5 border-b border-[#424753] flex justify-between items-center bg-[#161b2a]">
-          <div className="flex items-center gap-2">
-            <Home className="w-5 h-5 text-[#4C8DFF]" />
-            <div>
-              <h2 className="font-headline font-bold text-base text-white">
-                Habitat & Base Camp Configuration
-              </h2>
-              <p className="text-xs text-[#8c909f]">
-                Surface shelter, primary electrical power station, and DTE gateway.
-              </p>
-            </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={
+        <div className="flex items-center gap-2">
+          <Home className="w-5 h-5 text-blue-400" />
+          <span>Habitat & Base Camp Configuration</span>
+        </div>
+      }
+      description="Surface shelter, primary electrical power station, and DTE gateway."
+      size="md"
+      footer={
+        <Button
+          variant="primary"
+          size="sm"
+          leftIcon={<Save className="w-3.5 h-3.5" />}
+          onClick={onClose}
+        >
+          Save & Apply Configuration
+        </Button>
+      }
+    >
+      <div className="space-y-4 text-xs text-slate-200 font-mono">
+        <Input
+          label="HABITAT OUTPOST DESIGNATION"
+          value={habName}
+          onChange={(e) => setHabName(e.target.value)}
+        />
+
+        <Input
+          label="SITE COORDINATES (LATITUDE / LONGITUDE)"
+          value={habCoords}
+          onChange={(e) => setHabCoords(e.target.value)}
+        />
+
+        <div className="space-y-1.5">
+          <div className="flex justify-between text-xs">
+            <span className="text-slate-400 uppercase tracking-wider text-[10px]">
+              Base Electrical Storage Buffer (EPS)
+            </span>
+            <span className="text-emerald-400 font-bold">{powerReserve}% (Fission Surface Power)</span>
           </div>
-          <button 
-            onClick={onClose}
-            className="text-[#8c909f] hover:text-white px-2 py-1 rounded text-xs"
-          >
-            ESC
-          </button>
+          <input
+            type="range"
+            min="20"
+            max="100"
+            value={powerReserve}
+            onChange={(e) => setPowerReserve(Number(e.target.value))}
+            aria-label="Base Electrical Storage Buffer"
+            className="w-full accent-blue-400 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+          />
         </div>
 
-        <div className="p-5 space-y-4 text-xs text-[#dee2f6]">
-          <div className="space-y-1">
-            <label className="text-[#8c909f] uppercase tracking-wider text-[10px]">
-              Habitat Outpost Designation
-            </label>
-            <input
-              type="text"
-              value={habName}
-              onChange={(e) => setHabName(e.target.value)}
-              className="w-full bg-[#161b2a] border border-[#424753] rounded px-3 py-2 text-white focus:outline-none focus:border-[#4C8DFF]"
-            />
+        <div className="p-3 bg-black/40 rounded-xl border border-white/10 space-y-2">
+          <div className="flex justify-between items-center text-[11px]">
+            <span className="text-slate-400">Life Support EPS:</span>
+            <span className="text-emerald-400 font-bold">NOMINAL (101.3 kPa)</span>
           </div>
-
-          <div className="space-y-1">
-            <label className="text-[#8c909f] uppercase tracking-wider text-[10px]">
-              Site Coordinates (Latitude / Longitude)
-            </label>
-            <input
-              type="text"
-              value={habCoords}
-              onChange={(e) => setHabCoords(e.target.value)}
-              className="w-full bg-[#161b2a] border border-[#424753] rounded px-3 py-2 text-[#aec6ff] focus:outline-none focus:border-[#4C8DFF]"
-            />
+          <div className="flex justify-between items-center text-[11px]">
+            <span className="text-slate-400">High-Gain Earth LOS:</span>
+            <span className="text-cyan-400 font-bold">DIRECT (Elevation +1.8°)</span>
           </div>
-
-          <div className="space-y-1">
-            <div className="flex justify-between">
-              <label className="text-[#8c909f] uppercase tracking-wider text-[10px]">
-                Base Electrical Storage Buffer (EPS)
-              </label>
-              <span className="text-[#00FF94] font-bold">{powerReserve}% (Fission Surface Power)</span>
-            </div>
-            <input
-              type="range"
-              min="20"
-              max="100"
-              value={powerReserve}
-              onChange={(e) => setPowerReserve(Number(e.target.value))}
-              className="w-full accent-[#4C8DFF] h-1.5 bg-[#303444] rounded-lg cursor-pointer"
-            />
+          <div className="flex justify-between items-center text-[11px]">
+            <span className="text-slate-400">Emergency Air Lock Cycle:</span>
+            <span className="text-white font-bold">READY (Bay 1 & 2)</span>
           </div>
-
-          <div className="p-3 bg-[#161b2a] rounded border border-[#424753]/60 space-y-2">
-            <div className="flex justify-between items-center text-[11px]">
-              <span className="text-[#8c909f]">Life Support EPS:</span>
-              <span className="text-[#00FF94] font-bold">NOMINAL (101.3 kPa)</span>
-            </div>
-            <div className="flex justify-between items-center text-[11px]">
-              <span className="text-[#8c909f]">High-Gain Earth LOS:</span>
-              <span className="text-[#5de6ff] font-bold">DIRECT (Elevation +1.8°)</span>
-            </div>
-            <div className="flex justify-between items-center text-[11px]">
-              <span className="text-[#8c909f]">Emergency Air Lock Cycle:</span>
-              <span className="text-white font-bold">READY (Bay 1 & 2)</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-3 bg-[#161b2a] border-t border-[#424753] flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="px-3 py-1.5 text-xs text-[#8c909f] hover:text-white"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onClose}
-            className="bg-[#4C8DFF] hover:bg-[#3876e6] text-[#001a42] font-bold text-xs px-4 py-1.5 rounded flex items-center gap-1.5 transition-all"
-          >
-            <Save className="w-3.5 h-3.5" />
-            <span>Save Configuration</span>
-          </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

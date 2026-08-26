@@ -9,11 +9,13 @@ import {
   Settings,
   Sparkles, 
   FileText, 
-  Database,
-  Activity,
-  AlertTriangle
+  Database, 
+  Activity, 
+  AlertTriangle 
 } from 'lucide-react';
 import { FailureScenarioType } from '../types';
+import { Button, IconButton } from './ui';
+import { TopAppBarOverflowMenu } from './TopAppBarOverflowMenu';
 
 interface TopAppBarProps {
   coveragePercent: number;
@@ -23,6 +25,7 @@ interface TopAppBarProps {
   onOpenBriefing: () => void;
   onOpenProvenance: () => void;
   onOpenScenarioModal: () => void;
+  onOpenSettings?: () => void;
 }
 
 export const TopAppBar: React.FC<TopAppBarProps> = ({
@@ -33,6 +36,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   onOpenBriefing,
   onOpenProvenance,
   onOpenScenarioModal,
+  onOpenSettings,
 }) => {
   const isScenarioActive = activeScenario !== 'nominal';
 
@@ -66,7 +70,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
       </div>
 
       {/* Center/Right: Network telemetry pill & Quick Action buttons */}
-      <div className="flex items-center gap-2 md:gap-4">
+      <div className="flex items-center gap-2 md:gap-3">
         {/* Operational Window & Provenance (Frosted Metrics) */}
         <div className="hidden xl:flex items-center gap-5 pr-2 border-r border-white/10">
           <div className="text-right">
@@ -92,55 +96,61 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
         </div>
 
         {/* Stress test trigger button */}
-        <button
+        <Button
+          variant={isScenarioActive ? 'destructive' : 'secondary'}
+          size="sm"
           onClick={onOpenScenarioModal}
-          className={`font-mono text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5 border transition-all cursor-pointer backdrop-blur-md ${
-            isScenarioActive
-              ? 'bg-red-500/20 border-red-500/40 text-red-200 hover:bg-red-500/30'
-              : 'bg-white/5 border-white/10 text-slate-300 hover:text-white hover:bg-white/10 hover:border-white/20'
-          }`}
-          title="Inject Failure / Stress Test Scenario"
+          leftIcon={<AlertTriangle className="w-3.5 h-3.5 text-amber-400" />}
+          className="font-mono text-xs"
         >
-          <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
           <span className="hidden sm:inline">Stress Test</span>
-        </button>
+        </Button>
 
         {/* Design Assist Button */}
-        <button 
+        <Button 
+          variant="primary"
+          size="sm"
           onClick={onOpenDesignAssist}
-          className="bg-blue-600/90 hover:bg-blue-500 text-white font-mono font-bold text-xs px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-lg shadow-blue-500/20 border border-blue-400/30 backdrop-blur-md transition-all active:scale-95 cursor-pointer"
+          leftIcon={<Sparkles className="w-3.5 h-3.5 fill-current text-blue-200" />}
+          className="font-mono text-xs font-bold"
         >
-          <Sparkles className="w-3.5 h-3.5 fill-current text-blue-200" />
           <span>Design Assist</span>
-        </button>
+        </Button>
 
-        {/* NASA Provenance Data Button */}
-        <button 
-          onClick={onOpenProvenance}
-          className="text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 p-2 rounded-xl transition-all cursor-pointer backdrop-blur-md"
-          title="NASA Data Provenance & Sources"
-        >
-          <Database className="w-4 h-4" />
-        </button>
+        {/* Desktop secondary actions (hidden on mobile, in overflow menu) */}
+        <div className="hidden lg:flex items-center gap-2">
+          {/* NASA Provenance Data Button */}
+          <IconButton 
+            icon={<Database className="w-4 h-4" />}
+            aria-label="NASA Data Provenance & Sources"
+            onClick={onOpenProvenance}
+            size="md"
+          />
 
-        {/* Flight Rule Briefing Export */}
-        <button 
-          onClick={onOpenBriefing}
-          className="text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 p-2 rounded-xl transition-all cursor-pointer backdrop-blur-md"
-          title="Export NASA Flight Rule Briefing"
-        >
-          <FileText className="w-4 h-4" />
-        </button>
+          {/* Flight Rule Briefing Export */}
+          <IconButton 
+            icon={<FileText className="w-4 h-4" />}
+            aria-label="Export NASA Flight Rule Briefing"
+            onClick={onOpenBriefing}
+            size="md"
+          />
 
-        <div className="h-4 w-px bg-white/10 hidden sm:block"></div>
+          <div className="h-4 w-px bg-white/10"></div>
 
-        <button 
-          onClick={() => {}}
-          className="text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 p-2 rounded-xl transition-all backdrop-blur-md"
-          title="System Settings"
-        >
-          <Settings className="w-4 h-4" />
-        </button>
+          <IconButton 
+            icon={<Settings className="w-4 h-4" />}
+            aria-label="System Settings & Theme"
+            onClick={onOpenSettings || (() => {})}
+            size="md"
+          />
+        </div>
+
+        {/* Mobile/Tablet Overflow Menu */}
+        <TopAppBarOverflowMenu
+          onOpenProvenance={onOpenProvenance}
+          onOpenBriefing={onOpenBriefing}
+          onOpenSettings={onOpenSettings}
+        />
       </div>
     </header>
   );

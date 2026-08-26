@@ -4,7 +4,6 @@
  */
 
 // bun:test ships no type declarations in this repo (no bun-types dependency);
-// @ts-expect-error — no type declarations available for 'bun:test'
 import { describe, expect, test } from 'bun:test';
 
 import {

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { FailureScenarioType, LunarRegion, PlanOption, RelayNode, RoutePlan, DeadZone } from '../types';
+import { FailureScenarioType, LunarRegion, PlanOption, RelayNode, RoutePlan, DeadZone, ScienceSite } from '../types';
 import { INITIAL_RELAYS, ROVER_START, BASE_ALPHA_POS } from '../data/lunarData';
 import {
   batteryMarginPercent,
@@ -13,9 +13,11 @@ import {
   receivedPowerDbm,
   type PlanarCircle,
 } from './powerModel';
-import { SyntheticPolarTerrain, horizonProfile, losFactor, type TerrainProvider } from './terrain';
-import { DEM_GRID } from '../data/demGrid.generated';
-import { GriddedDemTerrain } from './lolaTerrain';
+import { horizonProfile, losFactor, type TerrainProvider } from './terrain';
+import { getSharedTerrain, relayLosFactorCached } from './terrainRuntime';
+import { computeScienceYield } from './science';
+
+export { computeScienceYield } from './science';
 
 export interface ObjectiveWeights {
   safetyWeight: number;      // w_s
@@ -69,6 +71,8 @@ export interface SolverContext {
   roverPos?: { lat: number; lon: number };
   /** Base habitat position (lat/lon). */
   basePos?: { lat: number; lon: number };
+  /** Science sites for the computed science axis (undefined => authored fallback). */
+  scienceSites?: ScienceSite[];
   /**
    * Pre-computed constellation coverage (review I4): lets the caller reuse the
    * exact MC result shown on the map instead of re-running the sampler here.
@@ -79,37 +83,15 @@ export interface SolverContext {
 /** Shared polar fallback anchor (review M2) — single source for map + solver. */
 export const DEFAULT_MAP_ANCHOR = { lat: -89.4, lon: 10 };
 
-/**
- * Shared terrain: REAL LOLA DEM (build-time grid from LDEM_80S_80M) with a
- * synthetic-calibrated fallback if the payload ever fails to decode.
- * Ray-marching is unchanged — only the elevation source swapped.
- */
-const SHARED_TERRAIN: TerrainProvider = (() => {
-  try {
-    return new GriddedDemTerrain(DEM_GRID.meta, DEM_GRID.dnBase64);
-  } catch {
-    return new SyntheticPolarTerrain();
-  }
-})();
-
-/** Cache LOS factors per (provider, relay position) — capped so long drag
- *  sessions can't grow the map forever (review M1). */
-const LOS_CACHE_CAP = 5000;
-const losCache = new WeakMap<TerrainProvider, Map<string, number>>();
+/** Shared terrain accessor — central holder lives in terrainRuntime. */
 function relayLosFactor(relayId: string, lat: number, lon: number, terrain: TerrainProvider): number {
-  let byPos = losCache.get(terrain);
-  if (!byPos) {
-    byPos = new Map();
-    losCache.set(terrain, byPos);
+  // If caller passed an explicit mock terrain (tests), honor it directly;
+  // otherwise use the shared cached path (which respects the current DEM).
+  const shared = getSharedTerrain();
+  if (terrain !== shared) {
+    return losFactor(horizonProfile(terrain, lat, lon));
   }
-  const key = `${relayId}:${lat.toFixed(4)}:${lon.toFixed(4)}`;
-  let f = byPos.get(key);
-  if (f === undefined) {
-    f = losFactor(horizonProfile(terrain, lat, lon));
-    if (byPos.size >= LOS_CACHE_CAP) byPos.clear();
-    byPos.set(key, f);
-  }
-  return f;
+  return relayLosFactorCached(relayId, lat, lon);
 }
 
 export interface RadarInput {
@@ -253,6 +235,12 @@ function finalizePlans(
     isMitigationActive: boolean;
     /** Slider weights — used to recompute compositeJ from live radar (IMP4). */
     weights: ObjectiveWeights;
+    /** Science inputs for computed science axis. */
+    scienceSites?: ScienceSite[];
+    relays?: RelayNode[];
+    roverPos?: { lat: number; lon: number };
+    basePos?: { lat: number; lon: number };
+    region?: Pick<LunarRegion, 'illuminationAvg' | 'centerLat' | 'centerLon'>;
   }
 ): RoutePlan[] {
   const COVERAGE_FACTOR: Record<PlanOption, number> = {
@@ -296,8 +284,23 @@ function finalizePlans(
       )
     );
 
-    // Radar: four axes computed from live outputs; science passes through the
-    // plan's authored design-intent value (the one disclosed non-derived axis).
+    // Radar: four axes computed from live outputs; science is COMPUTED from
+    // spatial yield (corridor 20 km) when scienceSites are provided, otherwise
+    // falls back to the authored design-intent value for backward compat.
+    // Archetype corridor bias: safety favors direct (narrow), science favors
+    // extended (wide) — maps DETOUR_FACTOR differences into science capture.
+    const corridorByPlan: Record<PlanOption, number> = { safety: 8, balanced: 15, science: 22 };
+    const computedScience =
+      p.scienceSites !== undefined
+        ? computeScienceYield(
+            p.scienceSites,
+            p.relays ?? INITIAL_RELAYS,
+            p.roverPos ?? ROVER_START,
+            p.basePos ?? BASE_ALPHA_POS,
+            p.region ?? { centerLat: `${DEFAULT_MAP_ANCHOR.lat}°S`, centerLon: `${DEFAULT_MAP_ANCHOR.lon}°E` } as Pick<LunarRegion, 'centerLat' | 'centerLon'>,
+            corridorByPlan[plan.id] ?? 15
+          )
+        : plan.radarScores.science;
     const radarScores = computeRadarScores({
       batteryMarginPercent: battery,
       coveragePercent: coverage,
@@ -307,7 +310,7 @@ function finalizePlans(
       relaysTotal: p.relaysTotal ?? 1,
       severityMultiplier: p.severityMultiplier,
       isMitigationActive: p.isMitigationActive,
-      sciencePriority: plan.radarScores.science,
+      sciencePriority: computedScience,
     });
 
     // Review IMP4: recompute the composite-J ranking from the LIVE radar so
@@ -417,6 +420,11 @@ export function generateRoutePlans(
       relaysTotal: (ctx.relays ?? INITIAL_RELAYS).filter(r => r.type !== 'orbital_lunanet').length,
       isMitigationActive,
       weights,
+      scienceSites: ctx.scienceSites,
+      relays: ctx.relays ?? INITIAL_RELAYS,
+      roverPos: rover,
+      basePos: base,
+      region: ctx.region,
     });
 
   if (isMitigationActive) {
@@ -1002,7 +1010,7 @@ export function countUncoveredDeadZones(
   deadZones: DeadZone[],
   isMitigationActive: boolean,
   region?: Pick<LunarRegion, 'centerLat' | 'centerLon'>,
-  terrain: TerrainProvider = SHARED_TERRAIN
+  terrain: TerrainProvider = getSharedTerrain()
 ): number {
   const anchorLat = region ? parseLatLonString(region.centerLat) : DEFAULT_MAP_ANCHOR.lat;
   const anchorLon = region ? parseLatLonString(region.centerLon) : DEFAULT_MAP_ANCHOR.lon;
@@ -1048,7 +1056,7 @@ export function calculateConstellationCoverage(
   deadZones: DeadZone[],
   isMitigationActive: boolean,
   region?: Pick<LunarRegion, 'centerLat' | 'centerLon'>,
-  terrain: TerrainProvider = SHARED_TERRAIN
+  terrain: TerrainProvider = getSharedTerrain()
 ): number {
   const anchorLat = region ? parseLatLonString(region.centerLat) : DEFAULT_MAP_ANCHOR.lat;
   const anchorLon = region ? parseLatLonString(region.centerLon) : DEFAULT_MAP_ANCHOR.lon;
