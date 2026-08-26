@@ -17,7 +17,8 @@ import {
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { RelayNode, ScienceSite, DeadZone, PlanOption, FailureScenarioType, LunarRegion } from '../types';
-import { latLonToLocalKm, localKmToLatLon } from '../utils/powerModel';
+import { latLonToLocalKm, localKmToLatLon, haversineDistanceKm } from '../utils/powerModel';
+import { ROVER_START, BASE_ALPHA_POS } from '../data/lunarData';
 import { DEFAULT_MAP_ANCHOR } from '../utils/solver';
 
 // NASA Trek Moon WMTS — LOLA-derived shaded relief (live-verified 2026-08-26).
@@ -155,9 +156,13 @@ export const LunarMap: React.FC<LunarMapProps> = ({
   const relayB = relays.find(r => r.id === 'relay_bravo');
   const isRelayBFailure = relayB?.status === 'offline';
 
-  // Decorative anchors (illustrative, not data-projected)
-  const baseAlpha = { x: 220, y: 760, name: 'LUNAR BASE ALPHA', code: 'BASE-01' };
-  const roverPos = { x: 740, y: 280, name: 'VIPER ROVER 01', distKm: 6.0 };
+  // Base habitat & rover — projected from their REAL lat/lon through the same
+  // transform as every other node (roadmap item: no more decorative anchors).
+  const baseProj = project(BASE_ALPHA_POS.lat, BASE_ALPHA_POS.lon);
+  const roverProj = project(ROVER_START.lat, ROVER_START.lon);
+  const habDistanceKm = haversineDistanceKm(ROVER_START.lat, ROVER_START.lon, BASE_ALPHA_POS.lat, BASE_ALPHA_POS.lon);
+  const baseAlpha = { x: baseProj.x, y: baseProj.y, name: 'LUNAR BASE ALPHA', code: 'BASE-01' };
+  const roverPos = { x: roverProj.x, y: roverProj.y, name: 'VIPER ROVER 01', distKm: habDistanceKm };
 
   const pos = (id: string, fb: { x: number; y: number }) => nodePos[id] ?? fb;
 

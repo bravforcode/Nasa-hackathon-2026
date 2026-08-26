@@ -47,3 +47,9 @@ const sw = generateRoutePlans('space_weather', 50, false, {
 });
 console.log(`space_weather severe viability (balanced): ${sw[1].viabilityPercent}%`);
 console.log(`computeRouteViability(b=32,c=91,s=-92) = ${computeRouteViability({ batteryMarginPercent: 32, coveragePercent: 91, minSignalDbm: -92 })}`);
+const radarBalanced = generateRoutePlans('nominal', 50, false, {
+  region: LUNAR_REGIONS[0],
+  relays: INITIAL_RELAYS,
+  deadZones: INITIAL_DEAD_ZONES,
+})[1];
+console.log('radar(balanced, nominal):', JSON.stringify(radarBalanced.radarScores));
