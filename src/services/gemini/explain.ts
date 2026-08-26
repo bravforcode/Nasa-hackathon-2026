@@ -4,17 +4,17 @@
  */
 
 /**
- * Gemini-powered mission explanation with a deterministic fallback.
+ * Mission explanation — FREE-FIRST AI.
  *
- * KEY-HANDLING DECISION (documented trade-off):
- * - Browser-side calls with VITE_GEMINI_API_KEY follow the official
- *   @google/genai browser-init pattern (same as AI Studio scaffolds).
- * - Google's own docs warn that production apps should proxy keys through a
- *   backend. For this hackathon build we accept the client-side pattern and
- *   recommend a restricted, disposable key. A proxy is the documented
- *   follow-up if this graduates beyond a demo.
- * - No key / API failure => deterministicExplanation() built from the LIVE
- *   computed metrics (never canned numbers).
+ * 1. LOCAL (default, $0, offline): rule-based explainer derived strictly from
+ *    live computed metrics. Always available, no key, no network.
+ * 2. GEMINI FREE TIER (optional): if VITE_GEMINI_API_KEY is set, the same
+ *    prompt goes to Gemini's free tier via the official @google/genai
+ *    browser-init pattern (AI Studio scaffold convention).
+ *
+ * KEY-HANDLING: browser-side keys are the documented AI Studio pattern; use a
+ * restricted disposable key for demos and proxy through a backend before any
+ * real deployment. No feature requires payment — the local path is complete.
  */
 
 import { GoogleGenAI } from '@google/genai';
@@ -80,7 +80,7 @@ export function deterministicExplanation(s: ExplanationState): string {
 
 export interface ExplanationResult {
   text: string;
-  source: 'gemini' | 'fallback';
+  source: 'gemini' | 'local';
 }
 
 type GenerateFn = (prompt: string) => Promise<string>;
@@ -100,8 +100,9 @@ const defaultGenerateFn: GenerateFn = async (prompt) => {
 };
 
 /**
- * Try Gemini; on ANY failure return the deterministic fallback so the demo
- * never shows an error hole. `source` tells the UI which path produced it.
+ * Try Gemini free tier; on ANY failure (or absent key) return the local
+ * rule-based explanation so the demo never shows an error hole. `source`
+ * tells the UI which path produced it.
  */
 export async function fetchGeminiExplanation(
   state: ExplanationState,
@@ -111,6 +112,6 @@ export async function fetchGeminiExplanation(
     const text = await generateFn(buildExplanationPrompt(state));
     return { text, source: 'gemini' };
   } catch {
-    return { text: deterministicExplanation(state), source: 'fallback' };
+    return { text: deterministicExplanation(state), source: 'local' };
   }
 }

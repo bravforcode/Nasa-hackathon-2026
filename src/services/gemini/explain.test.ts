@@ -64,11 +64,11 @@ describe('fetchGeminiExplanation', () => {
     expect(r.text).toBe('AI says: route is sound.');
   });
 
-  test('falls back to deterministic explainer when generator throws', async () => {
+  test('falls back to local rule-based explainer when generator throws', async () => {
     const r = await fetchGeminiExplanation(state, async () => {
       throw new Error('no key');
     });
-    expect(r.source).toBe('fallback');
+    expect(r.source).toBe('local');
     expect(r.text).toContain('56%');
   });
 
