@@ -367,6 +367,31 @@ export function coveragePercentPlanar(
 export const KM_PER_DEG_LAT_MOON = (Math.PI * MOON_RADIUS_KM) / 180; // ~30.32 km
 
 /**
+ * Free-space path loss in dB (standard engineering formula).
+ * FSPL(dB) = 20*log10(d_km) + 20*log10(f_MHz) + 32.44
+ */
+export function fsplDb(distKm: number, freqMHz: number): number {
+  if (!(distKm > 0) || !(freqMHz > 0)) return Infinity;
+  return 20 * Math.log10(distKm) + 20 * Math.log10(freqMHz) + 32.44;
+}
+
+/**
+ * Received signal power in dBm over a free-space link.
+ * Prx = Ptx + Gtx + Grx - FSPL  (omni antennas, no atmospheric loss on the Moon).
+ */
+export function receivedPowerDbm(
+  distKm: number,
+  freqMHz: number,
+  txPowerDbm: number,
+  txGainDbi: number,
+  rxGainDbi: number
+): number {
+  const fspl = fsplDb(distKm, freqMHz);
+  if (!Number.isFinite(fspl)) return -Infinity;
+  return txPowerDbm + txGainDbi + rxGainDbi - fspl;
+}
+
+/**
  * Inverse of `latLonToLocalKm`: convert local tangent-plane km offsets back to
  * lat/lon relative to an anchor point. Used by map drag interactions.
  */

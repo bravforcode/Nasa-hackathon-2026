@@ -18,9 +18,11 @@ import {
   batteryMarginPercent,
   constellationCoveragePercent,
   coveragePercentPlanar,
+  fsplDb,
   haversineDistanceKm,
   latLonToLocalKm,
   localKmToLatLon,
+  receivedPowerDbm,
   sepSeverityFromFlares,
   solarIncidenceFactor,
   solarPowerW,
@@ -236,6 +238,31 @@ describe('sepSeverityFromFlares', () => {
       { classType: '  M5.6  ' }, // whitespace-padded but valid
     ];
     expect(sepSeverityFromFlares(flares)).toEqual({ level: 'elevated', multiplier: 1.35 });
+  });
+});
+
+describe('link budget (free-space path loss)', () => {
+  test('FSPL at 15 km / 2200 MHz matches hand-computed 122.81 dB', () => {
+    // 20*log10(15) + 20*log10(2200) + 32.44 = 23.5218 + 66.8485 + 32.44
+    expect(fsplDb(15, 2200)).toBeCloseTo(122.81, 1);
+  });
+
+  test('FSPL at 1 km / 2200 MHz = 99.29 dB', () => {
+    expect(fsplDb(1, 2200)).toBeCloseTo(99.29, 1);
+  });
+
+  test('FSPL grows 6 dB per distance doubling', () => {
+    const a = fsplDb(10, 2200);
+    const b = fsplDb(20, 2200);
+    expect(b - a).toBeCloseTo(6.02, 1);
+  });
+
+  test('received power: 15 km S-band, +20 dBm tx, 2+2 dBi => -98.81 dBm', () => {
+    expect(receivedPowerDbm(15, 2200, 20, 2, 2)).toBeCloseTo(-98.81, 1);
+  });
+
+  test('received power: 30 km Ka-band, +23 dBm tx => about -123.4 dBm', () => {
+    expect(receivedPowerDbm(30, 26500, 23, 2, 2)).toBeCloseTo(-123.45, 0);
   });
 });
 
