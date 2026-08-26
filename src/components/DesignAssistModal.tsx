@@ -11,6 +11,12 @@ interface DesignAssistModalProps {
   onClose: () => void;
   isMitigationActive: boolean;
   onDeployMitigation: () => void;
+  /** Computed coverage without the Apex relay (live geometry). */
+  coverageBefore: number;
+  /** Computed coverage with the Apex relay deployed (live geometry). */
+  coverageAfter: number;
+  deadZonesBefore: number;
+  deadZonesAfter: number;
 }
 
 export const DesignAssistModal: React.FC<DesignAssistModalProps> = ({
@@ -18,8 +24,14 @@ export const DesignAssistModal: React.FC<DesignAssistModalProps> = ({
   onClose,
   isMitigationActive,
   onDeployMitigation,
+  coverageBefore,
+  coverageAfter,
+  deadZonesBefore,
+  deadZonesAfter,
 }) => {
   if (!isOpen) return null;
+
+  const coverageDelta = Math.round(coverageAfter - coverageBefore);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-150 font-mono">
@@ -55,7 +67,7 @@ export const DesignAssistModal: React.FC<DesignAssistModalProps> = ({
                 RECOMMENDED: Deploy Shackleton Apex Relay (R-04)
               </span>
               <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold">
-                +26% COVERAGE
+                +{coverageDelta}% COVERAGE
               </span>
             </div>
 
@@ -73,11 +85,11 @@ export const DesignAssistModal: React.FC<DesignAssistModalProps> = ({
             <div className="space-y-2 text-[11px]">
               <div className="flex justify-between items-center bg-white/5 border border-white/5 p-2.5 rounded-xl backdrop-blur-md">
                 <span className="text-slate-400">Network Coverage:</span>
-                <span className="text-emerald-400 font-bold">68% → 94% (+26%)</span>
+                <span className="text-emerald-400 font-bold">{coverageBefore}% → {coverageAfter}% (+{coverageDelta}%)</span>
               </div>
               <div className="flex justify-between items-center bg-white/5 border border-white/5 p-2.5 rounded-xl backdrop-blur-md">
                 <span className="text-slate-400">Critical Dead Zones:</span>
-                <span className="text-emerald-400 font-bold">2 Dead Zones → 0 Dead Zones</span>
+                <span className="text-emerald-400 font-bold">{deadZonesBefore} Dead Zones → {deadZonesAfter} Dead Zones</span>
               </div>
               <div className="flex justify-between items-center bg-white/5 border border-white/5 p-2.5 rounded-xl backdrop-blur-md">
                 <span className="text-slate-400">Mission Continuity Risk:</span>

@@ -4,25 +4,32 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  X, 
-  Sparkles, 
-  Database, 
-  Sliders, 
-  HelpCircle, 
-  Layers, 
+import {
+  X,
+  Sparkles,
+  Database,
+  Sliders,
+  HelpCircle,
+  Layers,
   ExternalLink,
   CheckCircle2,
   AlertTriangle
 } from 'lucide-react';
 import { RoutePlan } from '../types';
 import { NASA_DATA_SOURCES, RECOVERY_ASSUMPTIONS } from '../data/lunarData';
+import { fetchGeminiExplanation, type ExplanationState } from '../services/gemini/explain';
 
 interface ExplainabilityPanelProps {
   isOpen: boolean;
   onClose: () => void;
   selectedPlan: RoutePlan;
   allPlans: RoutePlan[];
+  /** Live DONKI fetch status from App ('idle' | 'loading' | 'ok' | 'error'). */
+  donkiStatus?: string;
+  /** Live CMR collection query result from App. */
+  cmrInfo?: { count: number; titles: string[]; fetchedAt: string } | { error: true } | null;
+  /** Live computed state for the AI/deterministic explainer. */
+  explanationInput?: ExplanationState;
   onExecutePlan: (planId: string) => void;
 }
 
@@ -31,9 +38,25 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
   onClose,
   selectedPlan,
   allPlans,
+  donkiStatus,
+  cmrInfo,
+  explanationInput,
   onExecutePlan,
 }) => {
   const [activeTab, setActiveTab] = useState<'score' | 'sources' | 'assumptions' | 'sensitivity'>('score');
+  const [aiLoading, setAiLoading] = useState<boolean>(false);
+  const [aiResult, setAiResult] = useState<{ text: string; source: 'gemini' | 'fallback' } | null>(null);
+
+  const handleExplain = async () => {
+    if (!explanationInput || aiLoading) return;
+    setAiLoading(true);
+    try {
+      const r = await fetchGeminiExplanation(explanationInput);
+      setAiResult(r);
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -293,6 +316,34 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
                 <span className="font-bold text-purple-300">{selectedPlan.radarScores.resilience} / 10.0</span>
               </div>
             </div>
+
+            {/* AI / deterministic explainer — reads LIVE computed state only */}
+            {explanationInput && (
+              <div className="p-3.5 rounded-xl bg-purple-500/5 border border-purple-500/30 backdrop-blur-md space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] uppercase tracking-wider font-bold text-purple-300 flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3" /> AI Explainability
+                  </span>
+                  <button
+                    onClick={handleExplain}
+                    disabled={aiLoading}
+                    className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg bg-purple-500/20 border border-purple-500/40 text-purple-200 hover:bg-purple-500/30 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {aiLoading ? 'THINKING…' : 'EXPLAIN THIS ROUTE'}
+                  </button>
+                </div>
+                {aiResult && (
+                  <>
+                    <p className="text-[11px] text-slate-200 leading-relaxed font-sans">{aiResult.text}</p>
+                    <div className={`text-[9px] font-bold uppercase ${aiResult.source === 'gemini' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      {aiResult.source === 'gemini'
+                        ? `Source: Gemini (${explanationInput.scenario} state)`
+                        : 'Source: deterministic model explainer (no Gemini key — set VITE_GEMINI_API_KEY)'}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -302,6 +353,44 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
             <p className="text-xs text-slate-400">
               Every calculation links directly to NASA PDS, LOLA, and DONKI space-weather data records.
             </p>
+
+            {/* LIVE integration status — real fetches, not static labels */}
+            <div className="p-3.5 rounded-xl bg-blue-500/5 border border-blue-500/30 backdrop-blur-md space-y-2">
+              <div className="text-[10px] uppercase tracking-wider font-bold text-blue-300">
+                Live Integration Status (this session)
+              </div>
+              <div className="flex justify-between items-center text-[11px]">
+                <span className="text-slate-300">DONKI solar-flare feed</span>
+                <span className={`font-bold ${
+                  donkiStatus === 'ok' ? 'text-emerald-400'
+                  : donkiStatus === 'loading' ? 'text-amber-400'
+                  : donkiStatus === 'error' ? 'text-red-400'
+                  : 'text-slate-500'
+                }`}>
+                  {donkiStatus === 'ok' ? 'LIVE — fetched'
+                    : donkiStatus === 'loading' ? 'FETCHING…'
+                    : donkiStatus === 'error' ? 'UNAVAILABLE (fallback model)'
+                    : 'IDLE (fetches on Space Weather scenario)'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-[11px]">
+                <span className="text-slate-300">Earthdata CMR metadata</span>
+                {!cmrInfo ? (
+                  <span className="text-slate-500 font-bold">FETCHING…</span>
+                ) : 'error' in cmrInfo ? (
+                  <span className="text-red-400 font-bold">UNAVAILABLE</span>
+                ) : (
+                  <span className="text-emerald-400 font-bold">{cmrInfo.count} collections @ {cmrInfo.fetchedAt.slice(11, 19)}Z</span>
+                )}
+              </div>
+              {cmrInfo && !('error' in cmrInfo) && cmrInfo.titles.length > 0 && (
+                <ul className="text-[10px] text-slate-400 list-disc list-inside space-y-0.5">
+                  {cmrInfo.titles.map((t, i) => (
+                    <li key={i} className="truncate">{t}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
 
             {NASA_DATA_SOURCES.map((src, idx) => (
               <div key={idx} className="p-3.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-md space-y-2">

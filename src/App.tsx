@@ -3,23 +3,28 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
-import { 
-  INITIAL_RELAYS, 
-  SCIENCE_SITES, 
-  INITIAL_DEAD_ZONES, 
-  LUNAR_REGIONS 
+import React, { useState, useMemo, useEffect } from 'react';
+import {
+  INITIAL_RELAYS,
+  SCIENCE_SITES,
+  INITIAL_DEAD_ZONES,
+  LUNAR_REGIONS,
+  MITIGATION_RELAY_CANDIDATE
 } from './data/lunarData';
-import { 
-  RelayNode, 
-  ScienceSite, 
-  DeadZone, 
-  LunarRegion, 
-  NavigationTab, 
-  FailureScenarioType, 
-  PlanOption 
+import {
+  RelayNode,
+  ScienceSite,
+  DeadZone,
+  LunarRegion,
+  NavigationTab,
+  FailureScenarioType,
+  PlanOption
 } from './types';
-import { calculateRoutePlans, calculateConstellationCoverage } from './utils/solver';
+import { calculateRoutePlans, calculateConstellationCoverage, type SolverContext } from './utils/solver';
+import { fetchRecentSpaceWeather } from './services/nasa/donki';
+import { fetchCmrCollections } from './services/nasa/cmr';
+import type { ExplanationState } from './services/gemini/explain';
+import { sepSeverityFromFlares, type SepSeverityLevel } from './utils/powerModel';
 
 // Components
 import { TopAppBar } from './components/TopAppBar';
@@ -54,6 +59,45 @@ export function App() {
   const [scienceSites, setScienceSites] = useState<ScienceSite[]>(SCIENCE_SITES);
   const [deadZones, setDeadZones] = useState<DeadZone[]>(INITIAL_DEAD_ZONES);
 
+  // Live DONKI space weather (fetched only for the space_weather scenario)
+  type SepSeverity = { level: SepSeverityLevel; multiplier: number };
+  const [sepSeverity, setSepSeverity] = useState<SepSeverity>({ level: 'low', multiplier: 1.0 });
+  const [sepStatus, setSepStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
+
+  // Live CMR collection metadata (provenance panel) — fetched once on mount
+  type CmrInfo = { count: number; titles: string[]; fetchedAt: string } | { error: true };
+  const [cmrInfo, setCmrInfo] = useState<CmrInfo | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchCmrCollections('LOLA', 5)
+      .then((r) => {
+        if (cancelled) return;
+        setCmrInfo({ count: r.hits, titles: r.titles.slice(0, 3), fetchedAt: new Date().toISOString() });
+      })
+      .catch(() => {
+        if (!cancelled) setCmrInfo({ error: true });
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (activeScenario !== 'space_weather') return;
+    let cancelled = false;
+    setSepStatus('loading');
+    fetchRecentSpaceWeather(14)
+      .then(({ flares }) => {
+        if (cancelled) return;
+        setSepSeverity(sepSeverityFromFlares(flares));
+        setSepStatus('ok');
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSepStatus('error'); // solver keeps multiplier 1.0 on failure
+      });
+    return () => { cancelled = true; };
+  }, [activeScenario]);
+
   // Modals & Panels
   const [isScenarioModalOpen, setIsScenarioModalOpen] = useState<boolean>(false);
   const [isExplainabilityOpen, setIsExplainabilityOpen] = useState<boolean>(false);
@@ -64,40 +108,59 @@ export function App() {
   const [isScienceModalOpen, setIsScienceModalOpen] = useState<boolean>(false);
   const [isConstraintsModalOpen, setIsConstraintsModalOpen] = useState<boolean>(false);
 
-  // Synchronize Relays based on scenario and mitigation
+  // Synchronize Relays based on scenario and mitigation.
+  // NOTE: the Apex candidate node is appended here when deployed — it is NOT
+  // part of INITIAL_RELAYS, so the coverage geometry actually gains a relay.
   const currentRelays = useMemo(() => {
-    return relays.map(r => {
+    const fleet: RelayNode[] = isMitigationActive
+      ? [...relays, { ...MITIGATION_RELAY_CANDIDATE }]
+      : relays;
+    return fleet.map(r => {
       if (r.id === 'relay_bravo') {
         return {
           ...r,
           status: activeScenario === 'relay_failure' ? 'offline' : 'active',
           healthPercent: activeScenario === 'relay_failure' ? 0 : 94,
-        };
+        } as RelayNode;
       }
       if (r.id === 'relay_shackleton_apex') {
         return {
           ...r,
           status: isMitigationActive ? 'active' : 'candidate',
           healthPercent: isMitigationActive ? 100 : 0,
-        };
+        } as RelayNode;
       }
       return r;
     });
   }, [relays, activeScenario, isMitigationActive]);
 
-  // Calculate dynamic Route Plans using solver
+  // Calculate dynamic Route Plans using solver (region + fleet + live DONKI aware)
+  const solverCtx = useMemo<SolverContext>(() => ({
+    region: selectedRegion,
+    relays: currentRelays,
+    deadZones,
+    spaceWeatherMultiplier: sepSeverity.multiplier,
+  }), [selectedRegion, currentRelays, deadZones, sepSeverity]);
+
   const routePlans = useMemo(() => {
-    return calculateRoutePlans(activeScenario, sliderValue, isMitigationActive);
-  }, [activeScenario, sliderValue, isMitigationActive]);
+    return calculateRoutePlans(activeScenario, sliderValue, isMitigationActive, solverCtx);
+  }, [activeScenario, sliderValue, isMitigationActive, solverCtx]);
 
   const activePlan = useMemo(() => {
     return routePlans.find(p => p.id === selectedPlanId) || routePlans[1];
   }, [routePlans, selectedPlanId]);
 
-  // Calculate live constellation coverage
-  const coveragePercent = useMemo(() => {
-    return calculateConstellationCoverage(currentRelays, deadZones, isMitigationActive);
-  }, [currentRelays, deadZones, isMitigationActive]);
+  // Live constellation coverage — computed for both mitigation states so the
+  // Design Assist panel can show the REAL delta, not a hardcoded one.
+  const coverageWithoutMitigation = useMemo(() => {
+    return calculateConstellationCoverage(currentRelays, deadZones, false, selectedRegion);
+  }, [currentRelays, deadZones, selectedRegion]);
+
+  const coverageWithMitigation = useMemo(() => {
+    return calculateConstellationCoverage(currentRelays, deadZones, true, selectedRegion);
+  }, [currentRelays, deadZones, selectedRegion]);
+
+  const coveragePercent = isMitigationActive ? coverageWithMitigation : coverageWithoutMitigation;
 
   const deadZonesCount = isMitigationActive ? 0 : activeScenario === 'relay_failure' ? 2 : 1;
 
@@ -108,6 +171,21 @@ export function App() {
     const total = activeNodes.reduce((acc, curr) => acc + curr.healthPercent, 0);
     return Math.round(total / activeNodes.length);
   }, [currentRelays]);
+
+  // Live state snapshot for the AI/deterministic explainer
+  const explanationInput = useMemo<ExplanationState>(() => ({
+    regionName: selectedRegion.name,
+    illuminationPercent: selectedRegion.illuminationAvg,
+    scenario: activeScenario,
+    planName: activePlan?.name ?? '',
+    coveragePercent,
+    batteryMarginPercent: activePlan?.batteryMarginPercent ?? 0,
+    viabilityPercent: activePlan?.viabilityPercent ?? 0,
+    minSignalDbm: activePlan?.minSignalDbm ?? 0,
+    relaysActive: currentRelays.filter(r => r.status === 'active').length,
+    relaysTotal: currentRelays.filter(r => r.type !== 'orbital_lunanet').length,
+    deadZonesCount,
+  }), [selectedRegion, activeScenario, activePlan, coveragePercent, currentRelays, deadZonesCount]);
 
   // Handle Tab Selection
   const handleSelectTab = (tab: NavigationTab) => {
@@ -129,6 +207,12 @@ export function App() {
       }
       return s;
     }));
+  };
+
+  // Drag a relay on the map → update its real lat/lon; every memo downstream
+  // (coverage, route plans) recomputes automatically.
+  const handleMoveRelay = (relayId: string, lat: number, lon: number) => {
+    setRelays(prev => prev.map(r => (r.id === relayId ? { ...r, lat, lon } : r)));
   };
 
   return (
@@ -174,7 +258,7 @@ export function App() {
                 coveragePercent={coveragePercent}
                 batteryPercent={activePlan.batteryMarginPercent}
                 isReplanning={activeScenario !== 'nominal'}
-                distanceKm={6.0}
+                distanceKm={activePlan.distanceKm}
                 relays={currentRelays}
                 onForceRecalc={() => {
                   // Trigger small visual recalculation
@@ -192,6 +276,8 @@ export function App() {
                 activePlan={selectedPlanId}
                 activeScenario={activeScenario}
                 isMitigationActive={isMitigationActive}
+                region={selectedRegion}
+                onMoveRelay={handleMoveRelay}
                 onDeployMitigationRelay={() => setIsMitigationActive(true)}
                 onSelectRelay={() => setIsDesignAssistOpen(true)}
               />
@@ -217,6 +303,9 @@ export function App() {
           onClose={() => setIsExplainabilityOpen(false)}
           selectedPlan={activePlan}
           allPlans={routePlans}
+          donkiStatus={sepStatus}
+          cmrInfo={cmrInfo}
+          explanationInput={explanationInput}
           onExecutePlan={(planId) => {
             setSelectedPlanId(planId as PlanOption);
             setIsBriefingOpen(true);
@@ -243,6 +332,10 @@ export function App() {
         onClose={() => setIsDesignAssistOpen(false)}
         isMitigationActive={isMitigationActive}
         onDeployMitigation={() => setIsMitigationActive(!isMitigationActive)}
+        coverageBefore={coverageWithoutMitigation}
+        coverageAfter={coverageWithMitigation}
+        deadZonesBefore={deadZonesCount}
+        deadZonesAfter={0}
       />
 
       <MissionBriefingModal
