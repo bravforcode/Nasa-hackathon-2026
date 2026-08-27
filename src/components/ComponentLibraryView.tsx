@@ -43,6 +43,7 @@ import {
   type ButtonSize,
   type InputSize,
 } from './ui';
+import { HorizonProfile3D } from './HorizonProfile3D';
 
 export const ComponentLibraryView: React.FC = () => {
   // Live interactive demo states
@@ -988,6 +989,15 @@ export const ComponentLibraryView: React.FC = () => {
             </Tabs.Content>
           </Tabs>
         </Card>
+
+        {/* 3D Lunar Horizon & LOS Mesh Interactive Component Showcase */}
+        <HorizonProfile3D
+          siteName="Shackleton Peak Station Alpha"
+          latDeg={-89.9}
+          lonDeg={0.0}
+          sunElevationDeg={1.4}
+          sunAzimuthDeg={135}
+        />
       </div>
 
       {/* Interactive Modal Primitive Demo */}

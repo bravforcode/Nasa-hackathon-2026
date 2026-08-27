@@ -4,9 +4,15 @@
  */
 
 import React from 'react';
-import { FileText, Printer, CheckCircle2 } from 'lucide-react';
+import { FileText, Printer, CheckCircle2, Download, FileCode } from 'lucide-react';
 import { RoutePlan, FailureScenarioType } from '../types';
 import { Modal, Button, StatusPill } from './ui';
+import {
+  buildFlightRulesMatrix,
+  exportMissionAsJson,
+  exportMissionAsMarkdown,
+  type MissionExportData,
+} from '../services/mission/export';
 
 interface MissionBriefingModalProps {
   isOpen: boolean;
@@ -25,6 +31,46 @@ export const MissionBriefingModal: React.FC<MissionBriefingModalProps> = ({
   coveragePercent,
   isMitigationActive,
 }) => {
+  const getMissionData = (): MissionExportData => {
+    return {
+      missionId: `NASA-ARTEMIS-SECTOR4-${new Date().getFullYear()}`,
+      timestampUtc: new Date().toISOString(),
+      siteName: 'South Pole Shackleton-de Gerlache Corridor',
+      strategyName: activePlan.name,
+      overallScore: activePlan.viabilityPercent,
+      commLinkCoveragePct: coveragePercent,
+      batteryReservePct: activePlan.batteryMarginPercent,
+      etaHours: activePlan.travelTimeHours,
+      spaceWeatherRisk: 'Nominal Class C1.0',
+      relayCount: isMitigationActive ? 4 : 3,
+      flightRules: buildFlightRulesMatrix(coveragePercent, activePlan.batteryMarginPercent, 'Nominal'),
+    };
+  };
+
+  const handleExportJson = () => {
+    const data = getMissionData();
+    const json = exportMissionAsJson(data);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `NASA-MISSION-BRIEFING-${activePlan.id.toUpperCase()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportMarkdown = () => {
+    const data = getMissionData();
+    const md = exportMissionAsMarkdown(data);
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `NASA-FLIGHT-RULES-${activePlan.id.toUpperCase()}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -38,18 +84,34 @@ export const MissionBriefingModal: React.FC<MissionBriefingModalProps> = ({
       description="DOCUMENT ID: JSC-EVA-2026-0824 · CONTINGENCY ROUTING"
       size="lg"
       footer={
-        <div className="w-full flex justify-between items-center">
-          <span className="text-3xs text-slate-400 font-mono">
+        <div className="w-full flex flex-wrap justify-between items-center gap-2">
+          <span className="text-3xs text-[var(--color-text-muted)] font-mono">
             Generated via Lunar Relay OS Decisional Engine
           </span>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              leftIcon={<FileCode className="w-3.5 h-3.5" />}
+              onClick={handleExportJson}
+            >
+              Export JSON
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              leftIcon={<Download className="w-3.5 h-3.5" />}
+              onClick={handleExportMarkdown}
+            >
+              Export MD
+            </Button>
             <Button
               variant="secondary"
               size="sm"
               leftIcon={<Printer className="w-3.5 h-3.5" />}
               onClick={() => window.print()}
             >
-              Print Briefing
+              Print
             </Button>
             <Button
               variant="primary"
