@@ -75,7 +75,7 @@ export const FailureScenarioModal: React.FC<FailureScenarioModalProps> = ({
         <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            <span>Nominal baseline restores all relay nodes &amp; 91% coverage.</span>
+            <span>Nominal baseline restores all relay nodes & 91% coverage.</span>
           </div>
 
           <Button

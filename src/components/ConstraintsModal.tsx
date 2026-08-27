@@ -24,7 +24,7 @@ export const ConstraintsModal: React.FC<ConstraintsModalProps> = ({ isOpen, onCl
       title={
         <div className="flex items-center gap-2">
           <Sliders className="w-5 h-5 text-blue-400" />
-          <span>NASA Operational Flight Rules &amp; Constraints</span>
+          <span>NASA Operational Flight Rules & Constraints</span>
         </div>
       }
       description="Hard constraints enforced on trajectory planning and failure recovery algorithms."
@@ -36,7 +36,7 @@ export const ConstraintsModal: React.FC<ConstraintsModalProps> = ({ isOpen, onCl
           leftIcon={<Save className="w-3.5 h-3.5" />}
           onClick={onClose}
         >
-          Save &amp; Apply Flight Rules
+          Save & Apply Flight Rules
         </Button>
       }
     >

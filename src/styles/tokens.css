@@ -48,6 +48,31 @@
   --color-map-cursor: #5de6ff;
   --color-map-terrain-line: #424753;
 
+  /* Data-Viz Tokens */
+  --color-viz-grid: rgb(255 255 255 / 0.12);
+  --color-viz-grid-subtle: rgb(255 255 255 / 0.06);
+  --color-viz-radar-fill: rgb(59 130 246 / 0.25);
+  --color-viz-radar-stroke: #60a5fa;
+  --color-viz-radar-glow: rgb(59 130 246 / 0.50);
+  --color-viz-radar-point: #60a5fa;
+  --color-viz-radar-point-stroke: #ffffff;
+  --color-viz-radar-compare: #94a3b8;
+  --color-viz-radar-compare-fill: rgb(148 163 184 / 0.08);
+  --color-viz-radar-safety-fill: rgb(0 255 148 / 0.22);
+  --color-viz-radar-science-fill: rgb(255 184 0 / 0.22);
+  --color-viz-label: #f1f5f9;
+
+  --color-viz-sunlit: rgb(59 130 246 / 0.40);
+  --color-viz-sunlit-peak: rgb(59 130 246 / 0.55);
+  --color-viz-penumbra: rgb(245 158 11 / 0.35);
+  --color-viz-shadow: #02040a;
+  --color-viz-shadow-deep: #000206;
+  --color-viz-timeline-track: rgb(15 23 42 / 0.80);
+  --color-viz-timeline-border: rgb(255 255 255 / 0.10);
+  --color-viz-playhead: #60a5fa;
+  --color-viz-playhead-thumb: #93c5fd;
+  --color-viz-playhead-glow: rgb(96 165 250 / 0.90);
+
   --font-headline: 'Fira Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   --font-body: 'Fira Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   --font-mono: 'Fira Code', 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
@@ -84,6 +109,31 @@
   --color-map-cursor: #5de6ff;
   --color-map-terrain-line: #424753;
 
+  /* Data-Viz Tokens */
+  --color-viz-grid: rgba(255, 255, 255, 0.12);
+  --color-viz-grid-subtle: rgba(255, 255, 255, 0.06);
+  --color-viz-radar-fill: rgba(59, 130, 246, 0.25);
+  --color-viz-radar-stroke: #60a5fa;
+  --color-viz-radar-glow: rgba(59, 130, 246, 0.50);
+  --color-viz-radar-point: #60a5fa;
+  --color-viz-radar-point-stroke: #ffffff;
+  --color-viz-radar-compare: #94a3b8;
+  --color-viz-radar-compare-fill: rgba(148, 163, 184, 0.08);
+  --color-viz-radar-safety-fill: rgba(0, 255, 148, 0.22);
+  --color-viz-radar-science-fill: rgba(255, 184, 0, 0.22);
+  --color-viz-label: #f1f5f9;
+
+  --color-viz-sunlit: rgba(59, 130, 246, 0.40);
+  --color-viz-sunlit-peak: rgba(59, 130, 246, 0.55);
+  --color-viz-penumbra: rgba(245, 158, 11, 0.35);
+  --color-viz-shadow: #02040a;
+  --color-viz-shadow-deep: #000206;
+  --color-viz-timeline-track: rgba(15, 23, 42, 0.80);
+  --color-viz-timeline-border: rgba(255, 255, 255, 0.10);
+  --color-viz-playhead: #60a5fa;
+  --color-viz-playhead-thumb: #93c5fd;
+  --color-viz-playhead-glow: rgba(96, 165, 250, 0.90);
+
   --glass-bg-strong: rgba(255, 255, 255, 0.05);
   --glass-bg-subtle: rgba(255, 255, 255, 0.03);
   --glass-bg-modal: rgba(2, 4, 10, 0.85);
@@ -119,10 +169,97 @@
   --color-map-cursor: #7ae8ff;
   --color-map-terrain-line: #6b7280;
 
+  /* Data-Viz Tokens (High Contrast) */
+  --color-viz-grid: rgba(255, 255, 255, 0.35);
+  --color-viz-grid-subtle: rgba(255, 255, 255, 0.20);
+  --color-viz-radar-fill: rgba(102, 170, 255, 0.35);
+  --color-viz-radar-stroke: #88bbff;
+  --color-viz-radar-glow: rgba(102, 170, 255, 0.80);
+  --color-viz-radar-point: #ffffff;
+  --color-viz-radar-point-stroke: #000000;
+  --color-viz-radar-compare: #d4d4d8;
+  --color-viz-radar-compare-fill: rgba(212, 212, 216, 0.15);
+  --color-viz-radar-safety-fill: rgba(51, 255, 176, 0.30);
+  --color-viz-radar-science-fill: rgba(255, 204, 51, 0.30);
+  --color-viz-label: #ffffff;
+
+  --color-viz-sunlit: rgba(102, 170, 255, 0.55);
+  --color-viz-sunlit-peak: rgba(102, 170, 255, 0.75);
+  --color-viz-penumbra: rgba(255, 204, 51, 0.50);
+  --color-viz-shadow: #000000;
+  --color-viz-shadow-deep: #000000;
+  --color-viz-timeline-track: rgba(0, 0, 0, 0.95);
+  --color-viz-timeline-border: rgba(255, 255, 255, 0.35);
+  --color-viz-playhead: #ffffff;
+  --color-viz-playhead-thumb: #88bbff;
+  --color-viz-playhead-glow: rgba(255, 255, 255, 1);
+
   --glass-bg-strong: rgba(255, 255, 255, 0.10);
   --glass-bg-modal: rgba(0, 0, 0, 0.95);
   --glass-blur-strong: 8px;
   --glass-blur-modal: 12px;
   --glow-accent: 0 0 0 2px rgb(102 170 255 / 0.6);
   --glow-destructive: 0 0 0 2px rgb(255 107 107 / 0.6);
+}
+
+/* Light theme — high-visibility daylight mode with full WCAG AA compliance */
+[data-theme="light"] {
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-accent: #2563eb;
+  --color-accent-strong: #1d4ed8;
+  --color-accent-subtle: #1d4ed8;
+  --color-destructive: #dc2626;
+  --color-destructive-strong: #991b1b;
+  --color-destructive-subtle: #b91c1c;
+  --color-success: #047857;
+  --color-success-subtle: #047857;
+  --color-warning: #b45309;
+  --color-warning-subtle: #92400e;
+  --color-text: #0f172a;
+  --color-text-muted: #475569;
+  --color-text-faint: #64748b;
+  --color-border: rgb(0 0 0 / 0.12);
+  --color-focus-ring: #2563eb;
+
+  --color-map-safety: #047857;
+  --color-map-balanced: #1d4ed8;
+  --color-map-science: #b45309;
+  --color-map-danger: #dc2626;
+  --color-map-cursor: #0284c7;
+  --color-map-terrain-line: #64748b;
+
+  /* Data-Viz Tokens (Light Mode) */
+  --color-viz-grid: rgba(0, 0, 0, 0.15);
+  --color-viz-grid-subtle: rgba(0, 0, 0, 0.08);
+  --color-viz-radar-fill: rgba(37, 99, 235, 0.20);
+  --color-viz-radar-stroke: #2563eb;
+  --color-viz-radar-glow: rgba(37, 99, 235, 0.35);
+  --color-viz-radar-point: #2563eb;
+  --color-viz-radar-point-stroke: #ffffff;
+  --color-viz-radar-compare: #64748b;
+  --color-viz-radar-compare-fill: rgba(100, 116, 139, 0.10);
+  --color-viz-radar-safety-fill: rgba(4, 120, 87, 0.20);
+  --color-viz-radar-science-fill: rgba(180, 83, 9, 0.20);
+  --color-viz-label: #0f172a;
+
+  --color-viz-sunlit: rgba(37, 99, 235, 0.35);
+  --color-viz-sunlit-peak: rgba(37, 99, 235, 0.50);
+  --color-viz-penumbra: rgba(180, 83, 9, 0.30);
+  --color-viz-shadow: #0f172a;
+  --color-viz-shadow-deep: #020617;
+  --color-viz-timeline-track: rgba(226, 232, 240, 0.90);
+  --color-viz-timeline-border: rgba(0, 0, 0, 0.15);
+  --color-viz-playhead: #2563eb;
+  --color-viz-playhead-thumb: #1d4ed8;
+  --color-viz-playhead-glow: rgba(37, 99, 235, 0.70);
+
+  --glass-bg-strong: rgba(0, 0, 0, 0.05);
+  --glass-bg-subtle: rgba(0, 0, 0, 0.03);
+  --glass-bg-modal: rgba(255, 255, 255, 0.92);
+  --glass-blur-strong: 20px;
+  --glass-blur-subtle: 12px;
+  --glass-blur-modal: 24px;
+  --glow-accent: 0 0 20px rgb(37 99 235 / 0.2);
+  --glow-destructive: 0 0 20px rgb(220 38 38 / 0.2);
 }

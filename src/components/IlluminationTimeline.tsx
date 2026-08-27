@@ -51,24 +51,24 @@ export const IlluminationTimeline: React.FC<IlluminationTimelineProps> = ({
   };
 
   return (
-    <footer className="h-[64px] w-full bg-white/5 backdrop-blur-xl border-t border-white/10 flex flex-col justify-center px-4 md:px-6 z-[var(--z-nav,30)] shrink-0 select-none shadow-lg">
+    <footer className="h-[64px] w-full bg-white/5 backdrop-blur-xl border-t border-[var(--color-border,rgba(255,255,255,0.1))] flex flex-col justify-center px-4 md:px-6 z-[var(--z-nav,30)] shrink-0 select-none shadow-lg">
       {/* Top Labels */}
       <div className="flex justify-between items-center mb-1">
         <div className="flex items-center gap-2">
-          <Sun className="w-3.5 h-3.5 text-amber-400" />
-          <span className="font-mono text-3xs text-slate-400 uppercase tracking-wider font-bold">
+          <Sun className="w-3.5 h-3.5 text-[var(--color-map-science,var(--color-warning,#f59e0b))]" />
+          <span className="font-mono text-3xs text-[var(--color-text-muted,#94a3b8)] uppercase tracking-wider font-bold">
             POWER / ILLUMINATION TIMELINE (T-MINUS 24H TO T+24H)
           </span>
         </div>
 
         <div className="flex items-center gap-3 font-mono text-3xs">
-          <span className="text-slate-400">
-            SUN ELEVATION: <strong className="text-emerald-400">1.4°</strong>
+          <span className="text-[var(--color-text-muted,#94a3b8)]">
+            SUN ELEVATION: <strong className="text-[var(--color-map-safety,var(--color-success,#10b981))]">1.4°</strong>
           </span>
-          <span className="text-[var(--color-accent-subtle)] font-bold">
+          <span className="text-[var(--color-accent-subtle,#60a5fa)] font-bold">
             CURRENT ORBIT: {orbitalAngle}°
           </span>
-          <span className="text-slate-200 font-bold">
+          <span className="text-[var(--color-text,#f1f5f9)] font-bold">
             {currentHour === 0 ? 'T-00:00 (NOW)' : currentHour > 0 ? `T+${currentHour}:00` : `T${currentHour}:00`}
           </span>
         </div>
@@ -85,36 +85,85 @@ export const IlluminationTimeline: React.FC<IlluminationTimelineProps> = ({
         aria-valuetext={`${currentHour === 0 ? 'T-00:00 (NOW)' : currentHour > 0 ? `T+${currentHour}:00` : `T${currentHour}:00`}`}
         onClick={handleTimelineClick}
         onKeyDown={handleKeyDown}
-        className="relative w-full h-3 bg-slate-900/80 rounded-full cursor-pointer group overflow-hidden border border-white/10 shadow-inner outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]"
+        className="relative w-full h-3 rounded-full cursor-pointer group overflow-hidden border shadow-inner outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]"
+        style={{
+          backgroundColor: 'var(--color-viz-timeline-track, rgba(15, 23, 42, 0.8))',
+          borderColor: 'var(--color-viz-timeline-border, rgba(255, 255, 255, 0.1))',
+        }}
       >
         {/* Illumination & Shadow Segment Bars */}
         <div className="absolute inset-0 flex">
           {/* Segment 1: Sunlit High Ridge (0 - 25%) */}
-          <div className="w-[25%] bg-blue-500/40 border-r border-white/10" title="Sunlit Plateau" />
+          <div
+            className="w-[25%] border-r"
+            style={{
+              backgroundColor: 'var(--color-viz-sunlit, rgba(59, 130, 246, 0.40))',
+              borderColor: 'var(--color-viz-timeline-border, rgba(255, 255, 255, 0.10))',
+            }}
+            title="Sunlit Plateau"
+          />
           {/* Segment 2: Penumbra / Low Grazing Angle (25% - 40%) */}
-          <div className="w-[15%] bg-amber-500/30 border-r border-white/10" title="Low Grazing Angle" />
+          <div
+            className="w-[15%] border-r"
+            style={{
+              backgroundColor: 'var(--color-viz-penumbra, rgba(245, 158, 11, 0.35))',
+              borderColor: 'var(--color-viz-timeline-border, rgba(255, 255, 255, 0.10))',
+            }}
+            title="Low Grazing Angle"
+          />
           {/* Segment 3: Deep Crater Shadow (40% - 60%) */}
-          <div className="w-[20%] bg-slate-950 border-r border-white/10" title="Deep Crater Shadow" />
+          <div
+            className="w-[20%] border-r"
+            style={{
+              backgroundColor: 'var(--color-viz-shadow, #02040a)',
+              borderColor: 'var(--color-viz-timeline-border, rgba(255, 255, 255, 0.10))',
+            }}
+            title="Deep Crater Shadow"
+          />
           {/* Segment 4: Peak of Eternal Light (60% - 85%) */}
-          <div className="w-[25%] bg-blue-500/50 border-r border-white/10" title="High Solar Exposure" />
+          <div
+            className="w-[25%] border-r"
+            style={{
+              backgroundColor: 'var(--color-viz-sunlit-peak, rgba(59, 130, 246, 0.55))',
+              borderColor: 'var(--color-viz-timeline-border, rgba(255, 255, 255, 0.10))',
+            }}
+            title="High Solar Exposure"
+          />
           {/* Segment 5: Approaching Eclipse (85% - 100%) */}
-          <div className="w-[15%] bg-slate-950" title="Cryogenic Shadow" />
+          <div
+            className="w-[15%]"
+            style={{
+              backgroundColor: 'var(--color-viz-shadow-deep, #000206)',
+            }}
+            title="Cryogenic Shadow"
+          />
         </div>
 
         {/* Playhead Cursor */}
         <div 
-          className="absolute top-0 bottom-0 w-1.5 bg-[var(--color-accent-subtle)] shadow-[0_0_12px_rgba(96,165,250,0.9)] transition-all"
-          style={{ left: `${playheadPercent}%`, transform: 'translateX(-50%)' }}
+          className="absolute top-0 bottom-0 w-1.5 transition-all"
+          style={{
+            left: `${playheadPercent}%`,
+            transform: 'translateX(-50%)',
+            backgroundColor: 'var(--color-viz-playhead, var(--color-accent-subtle, #60a5fa))',
+            boxShadow: '0 0 12px var(--color-viz-playhead-glow, rgba(96, 165, 250, 0.9))',
+          }}
         >
-          <div className="w-2.5 h-2.5 rounded-full bg-blue-300 -mt-0.5 -ml-0.5 shadow-sm" />
+          <div
+            className="w-2.5 h-2.5 rounded-full -mt-0.5 -ml-0.5 shadow-sm"
+            style={{
+              backgroundColor: 'var(--color-viz-playhead-thumb, var(--color-accent-subtle, #93c5fd))',
+              border: '1px solid var(--color-text, #ffffff)',
+            }}
+          />
         </div>
       </div>
 
       {/* Bottom Time Markers */}
-      <div className="flex justify-between mt-1 px-1 text-3xs font-mono text-slate-400">
+      <div className="flex justify-between mt-1 px-1 text-3xs font-mono text-[var(--color-text-muted,#94a3b8)]">
         <span>T-24:00</span>
         <span>T-12:00</span>
-        <span className="text-[var(--color-accent-subtle)] font-bold">T-00:00 (NOW)</span>
+        <span className="text-[var(--color-accent-subtle,#60a5fa)] font-bold">T-00:00 (NOW)</span>
         <span>T+12:00</span>
         <span>T+24:00</span>
       </div>

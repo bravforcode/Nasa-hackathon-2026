@@ -189,19 +189,40 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
     return `${pt.x},${pt.y}`;
   }).join(' ');
 
+  const activePlanColor =
+    selectedPlan.id === 'safety'
+      ? 'var(--color-map-safety, #00ff94)'
+      : selectedPlan.id === 'science'
+      ? 'var(--color-map-science, #ffb800)'
+      : 'var(--color-map-balanced, var(--color-accent, #4c8dff))';
+
+  const activePolygonStroke =
+    selectedPlan.id === 'safety'
+      ? 'var(--color-map-safety, #00ff94)'
+      : selectedPlan.id === 'science'
+      ? 'var(--color-map-science, #ffb800)'
+      : 'var(--color-viz-radar-stroke, var(--color-accent-subtle, #60a5fa))';
+
+  const activePolygonFill =
+    selectedPlan.id === 'safety'
+      ? 'var(--color-viz-radar-safety-fill, rgba(0, 255, 148, 0.22))'
+      : selectedPlan.id === 'science'
+      ? 'var(--color-viz-radar-science-fill, rgba(255, 184, 0, 0.22))'
+      : 'var(--color-viz-radar-fill, rgba(59, 130, 246, 0.25))';
+
   return (
-    <aside className="fixed inset-y-0 right-0 w-full sm:w-[500px] md:w-[540px] bg-[#02040a]/85 backdrop-blur-2xl border-l border-white/10 shadow-2xl z-[var(--z-panel,55)] flex flex-col animate-in slide-in-from-right duration-200">
+    <aside className="fixed inset-y-0 right-0 w-full sm:w-[500px] md:w-[540px] bg-[var(--color-bg,#05060a)]/90 backdrop-blur-2xl border-l border-[var(--color-border,rgba(255,255,255,0.1))] shadow-2xl z-[var(--z-panel,55)] flex flex-col animate-in slide-in-from-right duration-200">
       {/* Header */}
-      <div className="p-4 md:p-5 border-b border-white/10 flex justify-between items-center bg-white/5 backdrop-blur-md">
+      <div className="p-4 md:p-5 border-b border-[var(--color-border,rgba(255,255,255,0.1))] flex justify-between items-center bg-white/5 backdrop-blur-md">
         <div className="flex items-center gap-2.5 text-white">
-          <div className="w-8 h-8 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 backdrop-blur-md">
+          <div className="w-8 h-8 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-[var(--color-accent-subtle,#60a5fa)] backdrop-blur-md">
             <Sparkles className="w-4 h-4" />
           </div>
           <div>
-            <h2 className="font-headline font-bold text-base text-white">
+            <h2 className="font-headline font-bold text-base text-[var(--color-text,#f1f5f9)]">
               Decision Matrix & Explainability
             </h2>
-            <p className="font-mono text-3xs text-slate-400 uppercase tracking-widest">
+            <p className="font-mono text-3xs text-[var(--color-text-muted,#94a3b8)] uppercase tracking-widest">
               Transparent Scoring & NASA Data Lineage
             </p>
           </div>
@@ -211,18 +232,18 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
           type="button"
           onClick={onClose}
           aria-label="Close Decision Matrix"
-          className="text-slate-400 hover:text-white p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]"
+          className="text-[var(--color-text-muted,#94a3b8)] hover:text-[var(--color-text,#ffffff)] p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-[var(--color-border,rgba(255,255,255,0.1))] transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
       {/* Decision Summary Banner */}
-      <div className="p-4 bg-white/5 border-b border-white/10 backdrop-blur-md">
+      <div className="p-4 bg-white/5 border-b border-[var(--color-border,rgba(255,255,255,0.1))] backdrop-blur-md">
         <p className="font-body text-xs md:text-sm text-slate-200 leading-relaxed">
-          <strong className="text-blue-400 font-semibold">{selectedPlan.name}</strong> is recommended because it provides{' '}
-          <strong className="text-emerald-400">{selectedPlan.coveragePercent}% coverage</strong> while maintaining a{' '}
-          <strong className="text-blue-300">{selectedPlan.batteryMarginPercent}% battery reserve</strong> (Flight Rule-14.2 requires ≥20%).
+          <strong className="text-[var(--color-accent-subtle,#60a5fa)] font-semibold">{selectedPlan.name}</strong> is recommended because it provides{' '}
+          <strong className="text-[var(--color-map-safety,#00ff94)]">{selectedPlan.coveragePercent}% coverage</strong> while maintaining a{' '}
+          <strong className="text-[var(--color-accent-subtle,#60a5fa)]">{selectedPlan.batteryMarginPercent}% battery reserve</strong> (Flight Rule-14.2 requires ≥20%).
         </p>
       </div>
 
@@ -240,25 +261,34 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
           {/* Tab 1: Vector Analysis Radar Chart & Metrics */}
           <Tabs.Content<ExplainTab> value="score" className="space-y-4">
             <div className="flex justify-between items-center matrix-card-item">
-              <span className="font-mono text-xs text-slate-400 uppercase tracking-wider font-bold">
+              <span className="font-mono text-xs text-[var(--color-text-muted,#94a3b8)] uppercase tracking-wider font-bold">
                 5-Axis Vector Analysis
               </span>
 
               <div className="flex items-center gap-3 font-mono text-3xs">
                 <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 bg-blue-500 rounded-sm" />
+                  <div
+                    className="w-2.5 h-2.5 rounded-sm"
+                    style={{ backgroundColor: activePlanColor }}
+                  />
                   <span className="text-slate-200">{selectedPlan.name.split(' ')[0]} (Active)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 border border-slate-500 rounded-sm" />
-                  <span className="text-slate-400">{comparisonPlan.name.split(' ')[0]}</span>
+                  <div
+                    className="w-2.5 h-2.5 rounded-sm border"
+                    style={{
+                      borderColor: 'var(--color-viz-radar-compare, #94a3b8)',
+                      backgroundColor: 'var(--color-viz-radar-compare-fill, rgba(148, 163, 184, 0.08))',
+                    }}
+                  />
+                  <span className="text-[var(--color-text-muted,#94a3b8)]">{comparisonPlan.name.split(' ')[0]}</span>
                 </div>
               </div>
             </div>
 
             {/* SVG Radar Chart */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-center backdrop-blur-xl shadow-xl matrix-card-item">
-              <svg className="w-full max-w-[320px] aspect-square overflow-visible" viewBox="0 0 400 400">
+            <div className="bg-white/5 border border-[var(--color-border,rgba(255,255,255,0.1))] rounded-2xl p-4 flex items-center justify-center backdrop-blur-xl shadow-xl matrix-card-item">
+              <svg className="w-full max-w-[320px] aspect-square overflow-visible" viewBox="0 0 400 400" role="img" aria-label="5-axis radar chart displaying Safety, Communication, Power, Resilience, and Science metrics">
                 {/* Concentric pentagons */}
                 {[0.2, 0.4, 0.6, 0.8, 1.0].map((level) => {
                   const pts = axes.map(a => {
@@ -270,8 +300,8 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
                       key={level}
                       points={pts}
                       fill="none"
-                      stroke="rgba(255, 255, 255, 0.1)"
-                      strokeWidth="0.75"
+                      stroke={level === 1.0 ? 'var(--color-viz-grid, rgba(255, 255, 255, 0.12))' : 'var(--color-viz-grid-subtle, rgba(255, 255, 255, 0.06))'}
+                      strokeWidth={level === 1.0 ? '1.25' : '0.75'}
                       strokeDasharray={level === 1.0 ? 'none' : '2 2'}
                     />
                   );
@@ -287,7 +317,7 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
                       y1={center.y}
                       x2={outerPt.x}
                       y2={outerPt.y}
-                      stroke="rgba(255, 255, 255, 0.1)"
+                      stroke="var(--color-viz-grid, rgba(255, 255, 255, 0.12))"
                       strokeWidth="0.75"
                     />
                   );
@@ -296,19 +326,22 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
                 {/* Comparison Plan Polygon (Dashed outline) */}
                 <polygon
                   points={planBPoints}
-                  fill="none"
-                  stroke="#94a3b8"
-                  strokeWidth="1.5"
+                  fill="var(--color-viz-radar-compare-fill, rgba(148, 163, 184, 0.08))"
+                  stroke="var(--color-viz-radar-compare, #94a3b8)"
+                  strokeWidth="1.75"
                   strokeDasharray="4 3"
+                  strokeLinejoin="round"
                 />
 
-                {/* Selected Plan Polygon (Filled Ion Blue with animated coordinates) */}
+                {/* Selected Plan Polygon (Crisp High-Contrast Stroke with Glow Filter) */}
                 <polygon
                   points={planAPoints}
-                  fill="rgba(59, 130, 246, 0.25)"
-                  stroke="#60a5fa"
+                  fill={activePolygonFill}
+                  stroke={activePolygonStroke}
                   strokeWidth="2.5"
-                  style={{ filter: 'drop-shadow(0 0 12px rgba(59, 130, 246, 0.5))' }}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  style={{ filter: 'drop-shadow(0 0 12px var(--color-viz-radar-glow, rgba(59, 130, 246, 0.5)))' }}
                 />
 
                 {/* Data Points */}
@@ -319,10 +352,10 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
                       key={a.key}
                       cx={pt.x}
                       cy={pt.y}
-                      r="4"
-                      fill="#60a5fa"
-                      stroke="#ffffff"
-                      strokeWidth="1.5"
+                      r="4.5"
+                      fill={activePolygonStroke}
+                      stroke="var(--color-viz-radar-point-stroke, #ffffff)"
+                      strokeWidth="2"
                     />
                   );
                 })}
@@ -336,9 +369,9 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
                       x={labelPt.x}
                       y={labelPt.y + 4}
                       textAnchor="middle"
-                      fill="#f1f5f9"
+                      fill="var(--color-viz-label, var(--color-text, #f1f5f9))"
                       fontSize="10"
-                      fontFamily="JetBrains Mono"
+                      fontFamily="var(--font-mono, 'Fira Code', 'JetBrains Mono', monospace)"
                       fontWeight="700"
                     >
                       {a.label}
@@ -351,24 +384,24 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
             {/* Score Decomposition Table */}
             <div className="space-y-2 font-mono text-xs matrix-card-item">
               <div className="flex justify-between items-center p-2.5 rounded-xl bg-white/5 border border-white/5 backdrop-blur-md">
-                <span className="text-slate-400">Safety / Return Margin (S):</span>
-                <span className="font-bold text-emerald-400">{selectedPlan.radarScores.safety} / 10.0</span>
+                <span className="text-[var(--color-text-muted,#94a3b8)]">Safety / Return Margin (S):</span>
+                <span className="font-bold text-[var(--color-map-safety,#00ff94)]">{selectedPlan.radarScores.safety} / 10.0</span>
               </div>
               <div className="flex justify-between items-center p-2.5 rounded-xl bg-white/5 border border-white/5 backdrop-blur-md">
-                <span className="text-slate-400">Comms Continuity (C):</span>
-                <span className="font-bold text-blue-400">{selectedPlan.radarScores.communication} / 10.0</span>
+                <span className="text-[var(--color-text-muted,#94a3b8)]">Comms Continuity (C):</span>
+                <span className="font-bold text-[var(--color-map-balanced,#4c8dff)]">{selectedPlan.radarScores.communication} / 10.0</span>
               </div>
               <div className="flex justify-between items-center p-2.5 rounded-xl bg-white/5 border border-white/5 backdrop-blur-md">
-                <span className="text-slate-400">Power Margin (P):</span>
-                <span className="font-bold text-emerald-400">{selectedPlan.radarScores.power} / 10.0</span>
+                <span className="text-[var(--color-text-muted,#94a3b8)]">Power Margin (P):</span>
+                <span className="font-bold text-[var(--color-map-safety,#00ff94)]">{selectedPlan.radarScores.power} / 10.0</span>
               </div>
               <div className="flex justify-between items-center p-2.5 rounded-xl bg-white/5 border border-white/5 backdrop-blur-md">
-                <span className="text-slate-400">Science Completion (T):</span>
-                <span className="font-bold text-blue-300">{selectedPlan.radarScores.science} / 10.0</span>
+                <span className="text-[var(--color-text-muted,#94a3b8)]">Science Completion (T):</span>
+                <span className="font-bold text-[var(--color-map-science,#ffb800)]">{selectedPlan.radarScores.science} / 10.0</span>
               </div>
               <div className="flex justify-between items-center p-2.5 rounded-xl bg-white/5 border border-white/5 backdrop-blur-md">
-                <span className="text-slate-400">Resilience Margin (R):</span>
-                <span className="font-bold text-purple-300">{selectedPlan.radarScores.resilience} / 10.0</span>
+                <span className="text-[var(--color-text-muted,#94a3b8)]">Resilience Margin (R):</span>
+                <span className="font-bold text-[var(--color-accent-subtle,#60a5fa)]">{selectedPlan.radarScores.resilience} / 10.0</span>
               </div>
             </div>
 

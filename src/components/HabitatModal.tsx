@@ -24,7 +24,7 @@ export const HabitatModal: React.FC<HabitatModalProps> = ({ isOpen, onClose }) =
       title={
         <div className="flex items-center gap-2">
           <Home className="w-5 h-5 text-blue-400" />
-          <span>Habitat &amp; Base Camp Configuration</span>
+          <span>Habitat & Base Camp Configuration</span>
         </div>
       }
       description="Surface shelter, primary electrical power station, and DTE gateway."
@@ -36,7 +36,7 @@ export const HabitatModal: React.FC<HabitatModalProps> = ({ isOpen, onClose }) =
           leftIcon={<Save className="w-3.5 h-3.5" />}
           onClick={onClose}
         >
-          Save &amp; Apply Configuration
+          Save & Apply Configuration
         </Button>
       }
     >

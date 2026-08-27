@@ -28,7 +28,7 @@ export const ScienceGoalsModal: React.FC<ScienceGoalsModalProps> = ({
       title={
         <div className="flex items-center gap-2">
           <FlaskConical className="w-5 h-5 text-blue-400" />
-          <span>Science Mission Objectives &amp; Payload Tasks</span>
+          <span>Science Mission Objectives & Payload Tasks</span>
         </div>
       }
       description="VIPER spectrometer samples, volatile assays, and core drilling targets."

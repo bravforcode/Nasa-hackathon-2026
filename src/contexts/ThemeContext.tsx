@@ -5,7 +5,7 @@
 
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
-export type ThemeMode = 'dark' | 'hc';
+export type ThemeMode = 'dark' | 'light' | 'hc';
 
 interface ThemeContextType {
   theme: ThemeMode;
@@ -21,7 +21,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [theme, setThemeState] = useState<ThemeMode>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem(THEME_STORAGE_KEY);
-      if (stored === 'hc' || stored === 'dark') {
+      if (stored === 'hc' || stored === 'dark' || stored === 'light') {
         return stored;
       }
     }
@@ -39,7 +39,13 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'hc' : 'dark');
+    if (theme === 'dark') {
+      setTheme('light');
+    } else if (theme === 'light') {
+      setTheme('hc');
+    } else {
+      setTheme('dark');
+    }
   };
 
   useEffect(() => {

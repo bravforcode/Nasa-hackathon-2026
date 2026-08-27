@@ -82,7 +82,7 @@ export const MissionBriefingModal: React.FC<MissionBriefingModalProps> = ({
         {/* Section 1: Executive Summary */}
         <div className="space-y-1.5">
           <h3 className="font-bold text-blue-300 text-xs uppercase tracking-wider">
-            1.0 MISSION STATE &amp; INCIDENT ASSESSMENT
+            1.0 MISSION STATE & INCIDENT ASSESSMENT
           </h3>
           <p className="text-slate-300 font-sans text-xs">
             Current Scenario: <strong className="text-white uppercase font-mono">{activeScenario.replace('_', ' ')}</strong>. 

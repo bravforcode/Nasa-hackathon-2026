@@ -38,7 +38,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       'aria-label': ariaLabel,
       variant = 'ghost',
       size = 'md',
-      active = false,
+      active,
       disabled = false,
       className = '',
       title,

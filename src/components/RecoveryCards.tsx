@@ -74,6 +74,7 @@ export const RecoveryCards: React.FC<RecoveryCardsProps> = ({
               key={plan.id}
               role="button"
               tabIndex={0}
+              aria-label={`Select ${plan.name}`}
               aria-pressed={isSelected}
               onClick={() => onSelectPlan(plan.id)}
               onKeyDown={(e) => {
