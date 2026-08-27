@@ -18,9 +18,10 @@ describe('MetricLabel Primitive', () => {
 
     expect(dt).not.toBeNull();
     expect(dt?.textContent).toBe('Operational Window');
+    expect(dt?.className).toContain('text-[var(--color-text-muted)]');
     expect(dd).not.toBeNull();
     expect(dd?.textContent).toBe('14:22:09 LST');
-    expect(dd?.className).toContain('text-blue-400');
+    expect(dd?.className).toContain('text-[var(--color-accent-subtle)]');
   });
 
   it('applies right alignment when requested', () => {
@@ -31,6 +32,6 @@ describe('MetricLabel Primitive', () => {
     const dd = container.querySelector('dd');
 
     expect(dl?.className).toContain('text-right');
-    expect(dd?.className).toContain('text-emerald-400');
+    expect(dd?.className).toContain('text-[var(--color-success-subtle)]');
   });
 });

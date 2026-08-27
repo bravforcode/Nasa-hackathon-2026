@@ -11,42 +11,45 @@ export interface StatusPillProps extends React.HTMLAttributes<HTMLSpanElement> {
   tone?: StatusPillTone;
   icon?: ReactNode;
   pulse?: boolean;
+  /** When true, marks the element as an ARIA live region (role="status"). Defaults to false for static badges. */
+  isLive?: boolean;
   children: ReactNode;
   className?: string;
 }
 
 const toneStyles: Record<StatusPillTone, { wrapper: string; dot: string }> = {
   accent: {
-    wrapper: 'border-blue-500/30 bg-blue-500/15 text-blue-400',
-    dot: 'bg-blue-400',
+    wrapper: 'border-[var(--color-accent-subtle)]/30 bg-[var(--color-accent)]/15 text-[var(--color-accent-subtle)]',
+    dot: 'bg-[var(--color-accent-subtle)]',
   },
   success: {
-    wrapper: 'border-emerald-500/30 bg-emerald-500/15 text-emerald-400',
-    dot: 'bg-emerald-400',
+    wrapper: 'border-[var(--color-success-subtle)]/30 bg-[var(--color-success)]/15 text-[var(--color-success-subtle)]',
+    dot: 'bg-[var(--color-success-subtle)]',
   },
   warning: {
-    wrapper: 'border-amber-500/30 bg-amber-500/15 text-amber-400',
-    dot: 'bg-amber-400',
+    wrapper: 'border-[var(--color-warning-subtle)]/30 bg-[var(--color-warning)]/15 text-[var(--color-warning-subtle)]',
+    dot: 'bg-[var(--color-warning-subtle)]',
   },
   destructive: {
-    wrapper: 'border-red-500/30 bg-red-500/15 text-red-400',
-    dot: 'bg-red-400',
+    wrapper: 'border-[var(--color-destructive-subtle)]/30 bg-[var(--color-destructive)]/15 text-[var(--color-destructive-subtle)]',
+    dot: 'bg-[var(--color-destructive-subtle)]',
   },
   neutral: {
-    wrapper: 'border-white/10 bg-white/5 text-slate-400',
-    dot: 'bg-slate-400',
+    wrapper: 'border-[var(--color-border)] bg-white/5 text-[var(--color-text-faint)]',
+    dot: 'bg-[var(--color-text-faint)]',
   },
 };
 
 export const StatusPill = forwardRef<HTMLSpanElement, StatusPillProps>(
-  ({ tone = 'accent', icon, pulse = false, children, className = '', ...props }, ref) => {
+  ({ tone = 'accent', icon, pulse = false, isLive = false, role, children, className = '', ...props }, ref) => {
     const style = toneStyles[tone];
+    const resolvedRole = role ?? (isLive ? 'status' : undefined);
 
     return (
       <span
         ref={ref}
-        role="status"
-        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-mono text-[11px] font-bold tracking-wider backdrop-blur-md ${style.wrapper} ${className}`}
+        role={resolvedRole}
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-mono text-3xs font-bold tracking-wider backdrop-blur-md ${style.wrapper} ${className}`}
         {...props}
       >
         {pulse && (

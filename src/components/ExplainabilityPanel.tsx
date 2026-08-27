@@ -21,6 +21,8 @@ if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
 }
 
+export type ExplainTab = 'score' | 'sources' | 'assumptions' | 'sensitivity';
+
 interface ExplainabilityPanelProps {
   isOpen: boolean;
   onClose: () => void;
@@ -48,7 +50,7 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
   onResetLayout,
   onExecutePlan,
 }) => {
-  const [activeTab, setActiveTab] = useState<string>('score');
+  const [activeTab, setActiveTab] = useState<ExplainTab>('score');
   const [aiLoading, setAiLoading] = useState<boolean>(false);
   const [aiResult, setAiResult] = useState<ExplanationResult | null>(null);
 
@@ -90,22 +92,31 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
     };
   }, [selectedPlan]);
 
-  // GSAP ScrollTrigger stagger for card containers inside scroll panel
+  // GSAP ScrollTrigger scroller attachment for matrix cards inside the scroll container
   useEffect(() => {
-    if (!isOpen || prefersReducedMotion() || !scrollContainerRef.current) return;
+    const scroller = scrollContainerRef.current;
+    if (!isOpen || prefersReducedMotion() || !scroller) return;
 
-    const cleanup = createGsapContext(scrollContainerRef.current, () => {
-      const cards = scrollContainerRef.current?.querySelectorAll('.matrix-card-item');
-      if (cards && cards.length > 0) {
-        gsap.from(cards, {
+    const cleanup = createGsapContext(scroller, () => {
+      const cards = scroller.querySelectorAll('.matrix-card-item');
+      cards.forEach((card) => {
+        gsap.from(card, {
+          scrollTrigger: {
+            trigger: card,
+            scroller: scroller,
+            start: 'top 95%',
+            toggleActions: 'play none none none',
+          },
           opacity: 0,
           y: 12,
           duration: MOTION_DURATIONS.fast,
-          stagger: 0.04,
           ease: 'power1.out',
         });
-      }
+      });
     });
+
+    // Refresh ScrollTrigger calculations after tab switch layout change
+    ScrollTrigger.refresh();
 
     return cleanup;
   }, [isOpen, activeTab]);
@@ -215,19 +226,19 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
         </p>
       </div>
 
-      {/* Compound Tabs with keyboard roving navigation */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+      {/* Generic Compound Tabs with compile-time type safety and keyboard roving navigation */}
+      <Tabs<ExplainTab> value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
         <Tabs.List aria-label="Decision Matrix Navigation">
-          <Tabs.Trigger value="score">Score Breakdown</Tabs.Trigger>
-          <Tabs.Trigger value="sources">Data Sources ({NASA_DATA_SOURCES.length})</Tabs.Trigger>
-          <Tabs.Trigger value="assumptions">Assumptions</Tabs.Trigger>
-          <Tabs.Trigger value="sensitivity">Sensitivity</Tabs.Trigger>
+          <Tabs.Trigger<ExplainTab> value="score">Score Breakdown</Tabs.Trigger>
+          <Tabs.Trigger<ExplainTab> value="sources">Data Sources ({NASA_DATA_SOURCES.length})</Tabs.Trigger>
+          <Tabs.Trigger<ExplainTab> value="assumptions">Assumptions</Tabs.Trigger>
+          <Tabs.Trigger<ExplainTab> value="sensitivity">Sensitivity</Tabs.Trigger>
         </Tabs.List>
 
-        {/* Tab Content Body */}
+        {/* Tab Content Body with ScrollTrigger Scroller */}
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 md:p-5 space-y-4">
           {/* Tab 1: Vector Analysis Radar Chart & Metrics */}
-          <Tabs.Content value="score" className="space-y-4">
+          <Tabs.Content<ExplainTab> value="score" className="space-y-4">
             <div className="flex justify-between items-center matrix-card-item">
               <span className="font-mono text-xs text-slate-400 uppercase tracking-wider font-bold">
                 5-Axis Vector Analysis
@@ -392,7 +403,7 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
           </Tabs.Content>
 
           {/* Tab 2: NASA Data Sources */}
-          <Tabs.Content value="sources" className="space-y-3 font-mono">
+          <Tabs.Content<ExplainTab> value="sources" className="space-y-3 font-mono">
             <p className="text-xs text-slate-400">
               Every calculation links directly to NASA PDS, LOLA, and DONKI space-weather data records.
             </p>
@@ -468,7 +479,7 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
           </Tabs.Content>
 
           {/* Tab 3: Assumptions & Constraints */}
-          <Tabs.Content value="assumptions" className="space-y-3 font-mono text-xs">
+          <Tabs.Content<ExplainTab> value="assumptions" className="space-y-3 font-mono text-xs">
             <p className="text-slate-400">
               Flight Rules and operational constraints enforced by the re-planning algorithm:
             </p>
@@ -489,7 +500,7 @@ export const ExplainabilityPanel: React.FC<ExplainabilityPanelProps> = ({
           </Tabs.Content>
 
           {/* Tab 4: Sensitivity Analysis */}
-          <Tabs.Content value="sensitivity" className="space-y-3 font-mono text-xs">
+          <Tabs.Content<ExplainTab> value="sensitivity" className="space-y-3 font-mono text-xs">
             <p className="text-slate-400">
               Perturbation test responses for environmental and vehicle drift:
             </p>

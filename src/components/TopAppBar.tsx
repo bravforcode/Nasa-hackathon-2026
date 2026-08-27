@@ -65,7 +65,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
             aria-label="Active Scenario Detected — Click to inspect"
             className="hidden sm:inline-flex cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)] rounded-lg"
           >
-            <StatusPill tone="destructive" pulse>
+            <StatusPill tone="destructive" pulse isLive={true}>
               SCENARIO ACTIVE
             </StatusPill>
           </button>

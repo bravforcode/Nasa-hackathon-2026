@@ -46,7 +46,7 @@ export const NavItem = forwardRef<HTMLButtonElement, NavItemProps>(
         </div>
 
         {badge && (
-          <StatusPill tone={badge.tone ?? 'accent'} className="py-0.5 px-2 text-[10px]">
+          <StatusPill tone={badge.tone ?? 'accent'} className="py-0.5 px-2">
             {badge.text}
           </StatusPill>
         )}

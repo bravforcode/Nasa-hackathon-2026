@@ -31,7 +31,7 @@ describe('NavItem Primitive', () => {
   });
 
   it('renders badge with correct status pill', () => {
-    const { getByRole } = render(
+    const { getByText } = render(
       <NavItem
         icon={<span>📡</span>}
         label="Relay Network"
@@ -40,9 +40,8 @@ describe('NavItem Primitive', () => {
       />
     );
 
-    const badge = getByRole('status');
+    const badge = getByText('95%');
     expect(badge).toBeInTheDocument();
-    expect(badge.textContent).toContain('95%');
   });
 
   it('satisfies WCAG touch target floor (min-h-11 = 44px)', () => {
