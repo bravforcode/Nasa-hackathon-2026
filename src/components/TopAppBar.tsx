@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Radio, 
   Settings,
@@ -11,11 +11,14 @@ import {
   FileText, 
   Database, 
   Activity, 
-  AlertTriangle 
+  AlertTriangle,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { FailureScenarioType } from '../types';
 import { Button, IconButton, StatusPill, MetricLabel, Tooltip, AnimatedCounter } from './ui';
 import { TopAppBarOverflowMenu } from './TopAppBarOverflowMenu';
+import { globalCapcomAudio } from '../services/audio/capcom';
 
 interface TopAppBarProps {
   coveragePercent: number;
@@ -39,6 +42,16 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   onOpenSettings,
 }) => {
   const isScenarioActive = activeScenario !== 'nominal';
+  const [isAudioMuted, setIsAudioMuted] = useState<boolean>(!globalCapcomAudio.isEnabled());
+
+  const handleToggleAudio = () => {
+    const nextMuted = !isAudioMuted;
+    setIsAudioMuted(nextMuted);
+    globalCapcomAudio.setEnabled(!nextMuted);
+    if (!nextMuted) {
+      globalCapcomAudio.speak('CAPCOM audio communication channel enabled.', 'STATUS');
+    }
+  };
 
   return (
     <header className="bg-white/5 backdrop-blur-md w-full top-0 border-b border-white/10 flex justify-between items-center px-4 md:px-6 py-2.5 z-[var(--z-header,40)] shrink-0 h-[64px]">
@@ -145,6 +158,16 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
               icon={<FileText className="w-4 h-4" />}
               aria-label="Export NASA Flight Rule Briefing"
               onClick={onOpenBriefing}
+              size="md"
+            />
+          </Tooltip>
+
+          {/* CAPCOM Mission Audio Callout Toggle */}
+          <Tooltip content={isAudioMuted ? 'Unmute NASA CAPCOM Audio Callouts' : 'Mute NASA CAPCOM Audio Callouts'} side="bottom">
+            <IconButton
+              icon={isAudioMuted ? <VolumeX className="w-4 h-4 text-slate-500" /> : <Volume2 className="w-4 h-4 text-cyan-400" />}
+              aria-label={isAudioMuted ? 'Unmute NASA CAPCOM Audio Callouts' : 'Mute NASA CAPCOM Audio Callouts'}
+              onClick={handleToggleAudio}
               size="md"
             />
           </Tooltip>

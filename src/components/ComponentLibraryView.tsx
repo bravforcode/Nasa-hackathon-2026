@@ -44,6 +44,7 @@ import {
   type InputSize,
 } from './ui';
 import { HorizonProfile3D } from './HorizonProfile3D';
+import { LunarSurface3D } from './LunarSurface3D';
 
 export const ComponentLibraryView: React.FC = () => {
   // Live interactive demo states
@@ -996,6 +997,15 @@ export const ComponentLibraryView: React.FC = () => {
           latDeg={-89.9}
           lonDeg={0.0}
           sunElevationDeg={1.4}
+          sunAzimuthDeg={135}
+        />
+
+        {/* True 3D WebGL Lunar Surface & Dynamic Sunlight Shadows */}
+        <LunarSurface3D
+          siteName="Shackleton Peak Station Alpha"
+          latDeg={-89.9}
+          lonDeg={0.0}
+          sunElevationDeg={1.6}
           sunAzimuthDeg={135}
         />
       </div>

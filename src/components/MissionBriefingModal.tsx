@@ -13,6 +13,7 @@ import {
   exportMissionAsMarkdown,
   type MissionExportData,
 } from '../services/mission/export';
+import { downloadMissionPdf } from '../services/mission/pdfExport';
 import { globalNasaPolling } from '../services/nasa/polling';
 
 interface MissionBriefingModalProps {
@@ -91,6 +92,10 @@ export const MissionBriefingModal: React.FC<MissionBriefingModalProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  const handleExportPdf = () => {
+    downloadMissionPdf(missionData);
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -109,6 +114,14 @@ export const MissionBriefingModal: React.FC<MissionBriefingModalProps> = ({
             Generated via Lunar Relay OS Decisional Engine
           </span>
           <div className="flex flex-wrap gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              leftIcon={<Download className="w-3.5 h-3.5 text-blue-400" />}
+              onClick={handleExportPdf}
+            >
+              Export PDF
+            </Button>
             <Button
               variant="secondary"
               size="sm"
