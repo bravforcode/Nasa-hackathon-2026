@@ -990,7 +990,7 @@ export const ComponentLibraryView: React.FC = () => {
           </Tabs>
         </Card>
 
-        {/* 3D Lunar Horizon & LOS Mesh Interactive Component Showcase */}
+        {/* 2D Polar Lunar Horizon & LOS Elevation Sweep Showcase */}
         <HorizonProfile3D
           siteName="Shackleton Peak Station Alpha"
           latDeg={-89.9}

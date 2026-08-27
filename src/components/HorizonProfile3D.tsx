@@ -95,7 +95,7 @@ export const HorizonProfile3D: React.FC<HorizonProfile3DProps> = ({
     <Card
       as="section"
       variant="default"
-      aria-label="3D Lunar Horizon and Line-of-Sight Mesh Profile"
+      aria-label="Lunar Horizon and Line-of-Sight Polar Elevation Sweep"
       className={`relative overflow-hidden border border-[var(--color-border-subtle)] bg-[var(--color-bg-surface)] ${className}`}
     >
       {/* Header */}
@@ -106,10 +106,10 @@ export const HorizonProfile3D: React.FC<HorizonProfile3DProps> = ({
           </div>
           <div>
             <h3 className="text-sm font-semibold text-[var(--color-text)] tracking-tight">
-              3D Lunar Horizon & LOS Mesh
+              Lunar Horizon & LOS Elevation Sweep (2D Polar Analysis)
             </h3>
             <p className="text-3xs text-[var(--color-text-muted)] font-mono">
-              {siteName} ({latDeg.toFixed(2)}°S, {lonDeg.toFixed(2)}°E) · {sweep.observerElevationM}m ASL
+              {siteName} ({latDeg.toFixed(2)}°S, {lonDeg.toFixed(2)}°E) · {sweep.observerElevationM}m ASL · Ray-Marched Polar Relief
             </p>
           </div>
         </div>

@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { FileText, Printer, CheckCircle2, Download, FileCode } from 'lucide-react';
+import { FileText, Printer, CheckCircle2, Download, FileCode, AlertTriangle } from 'lucide-react';
 import { RoutePlan, FailureScenarioType } from '../types';
 import { Modal, Button, StatusPill } from './ui';
 import {
@@ -13,6 +13,7 @@ import {
   exportMissionAsMarkdown,
   type MissionExportData,
 } from '../services/mission/export';
+import { globalNasaPolling } from '../services/nasa/polling';
 
 interface MissionBriefingModalProps {
   isOpen: boolean;
@@ -32,6 +33,25 @@ export const MissionBriefingModal: React.FC<MissionBriefingModalProps> = ({
   isMitigationActive,
 }) => {
   const getMissionData = (): MissionExportData => {
+    const livePollingState = globalNasaPolling.getState();
+    const latestFlare = livePollingState.flares.length > 0 ? livePollingState.flares[0] : null;
+    
+    // Resolve live space weather classification
+    let spaceWeatherClass = 'Nominal (No Severe Events)';
+    if (activeScenario === 'space_weather') {
+      spaceWeatherClass = 'Class M2.4 (Simulated SPE Active)';
+    } else if (latestFlare?.classType) {
+      spaceWeatherClass = `Class ${latestFlare.classType}`;
+    }
+
+    const maxSlope = activePlan.maxGradientDeg || 11.4;
+    const flightRules = buildFlightRulesMatrix(
+      coveragePercent,
+      activePlan.batteryMarginPercent,
+      spaceWeatherClass,
+      maxSlope
+    );
+
     return {
       missionId: `NASA-ARTEMIS-SECTOR4-${new Date().getFullYear()}`,
       timestampUtc: new Date().toISOString(),
@@ -41,15 +61,16 @@ export const MissionBriefingModal: React.FC<MissionBriefingModalProps> = ({
       commLinkCoveragePct: coveragePercent,
       batteryReservePct: activePlan.batteryMarginPercent,
       etaHours: activePlan.travelTimeHours,
-      spaceWeatherRisk: 'Nominal Class C1.0',
+      spaceWeatherRisk: spaceWeatherClass,
       relayCount: isMitigationActive ? 4 : 3,
-      flightRules: buildFlightRulesMatrix(coveragePercent, activePlan.batteryMarginPercent, 'Nominal'),
+      flightRules,
     };
   };
 
+  const missionData = getMissionData();
+
   const handleExportJson = () => {
-    const data = getMissionData();
-    const json = exportMissionAsJson(data);
+    const json = exportMissionAsJson(missionData);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -60,8 +81,7 @@ export const MissionBriefingModal: React.FC<MissionBriefingModalProps> = ({
   };
 
   const handleExportMarkdown = () => {
-    const data = getMissionData();
-    const md = exportMissionAsMarkdown(data);
+    const md = exportMissionAsMarkdown(missionData);
     const blob = new Blob([md], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -170,24 +190,40 @@ export const MissionBriefingModal: React.FC<MissionBriefingModalProps> = ({
           </div>
         </div>
 
-        {/* Section 3: Go/No-Go Checklist */}
-        <div className="space-y-1.5">
+        {/* Section 3: Dynamic NASA Flight Rules Compliance Matrix */}
+        <div className="space-y-2">
           <h3 className="font-bold text-blue-300 text-xs uppercase tracking-wider">
-            3.0 FLIGHT RULE GO / NO-GO CRITERIA
+            3.0 NASA FLIGHT RULES COMPLIANCE MATRIX (LIVE TELEMETRY)
           </h3>
-          <div className="space-y-1 text-xs">
-            <div className="flex items-center gap-2 text-emerald-400">
-              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-              <span>Rule-14.2: Final battery reserve {activePlan.batteryMarginPercent}% ≥ 20.0% [GO]</span>
-            </div>
-            <div className="flex items-center gap-2 text-emerald-400">
-              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-              <span>Max continuous RF loss {activePlan.coveragePercent >= 80 ? '&lt; 3.0 min' : '&lt; 5.0 min'} [GO]</span>
-            </div>
-            <div className="flex items-center gap-2 text-emerald-400">
-              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-              <span>Slope maximum terrain gradient &lt; 14.8° within LOLA envelope [GO]</span>
-            </div>
+          <div className="space-y-2 text-xs">
+            {missionData.flightRules.map((rule) => {
+              const tone = rule.status === 'COMPLIANT' ? 'success' : rule.status === 'WARNING' ? 'warning' : 'destructive';
+              return (
+                <div
+                  key={rule.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 p-2 rounded-lg bg-black/30 border border-white/5"
+                >
+                  <div className="flex items-start gap-2">
+                    {rule.status === 'COMPLIANT' ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    )}
+                    <div>
+                      <div className="font-bold text-slate-200">
+                        {rule.id}: {rule.title}
+                      </div>
+                      <div className="text-3xs text-slate-400 font-sans">
+                        Req: {rule.threshold} | Actual: <span className="font-mono text-cyan-300">{rule.actualValue}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <StatusPill tone={tone} className="self-start sm:self-center">
+                    {rule.status}
+                  </StatusPill>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -19,7 +19,7 @@ describe('HorizonProfile3D Component', () => {
       />
     );
 
-    expect(getByText(/3D Lunar Horizon & LOS Mesh/i)).toBeInTheDocument();
+    expect(getByText(/Lunar Horizon & LOS Elevation Sweep/i)).toBeInTheDocument();
     expect(getByText(/Shackleton Rim Alpha/i)).toBeInTheDocument();
 
     const svg = getByRole('img');
