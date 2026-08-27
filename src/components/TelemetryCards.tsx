@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   Wifi,
   WifiOff,
@@ -16,7 +16,7 @@ import {
   Navigation
 } from 'lucide-react';
 import { RelayNode } from '../types';
-import { Button, Card } from './ui';
+import { Button, Card, StatusPill, AnimatedCounter } from './ui';
 
 interface TelemetryCardsProps {
   coveragePercent: number;
@@ -50,7 +50,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
             : 'bg-white/5 border-white/10 hover:border-white/20'
         }`}>
           <div className="flex justify-between items-start">
-            <span className="font-mono text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+            <span className="font-mono text-3xs text-slate-400 uppercase font-bold tracking-wider">
               Communication Link
             </span>
             {isCommCritical ? (
@@ -64,7 +64,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
             <span className={`font-headline text-3xl font-extrabold tracking-tight ${
               isCommCritical ? 'text-red-400' : 'text-blue-400'
             }`}>
-              {coveragePercent.toFixed(1)}%
+              <AnimatedCounter value={coveragePercent} suffix="%" />
             </span>
             <span className="font-mono text-xs text-slate-400">Coverage Area</span>
           </div>
@@ -82,7 +82,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
         {/* KPI 2: Battery State of Charge */}
         <div className="p-4 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl flex flex-col justify-between transition-all duration-200 shadow-xl hover:border-white/20">
           <div className="flex justify-between items-start">
-            <span className="font-mono text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+            <span className="font-mono text-3xs text-slate-400 uppercase font-bold tracking-wider">
               Rover Battery SoC
             </span>
             <BatteryCharging className="w-4 h-4 text-emerald-400" />
@@ -90,7 +90,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
 
           <div className="flex items-baseline gap-2.5 my-2">
             <span className="font-headline text-3xl font-extrabold text-emerald-400 tracking-tight">
-              {batteryPercent}%
+              <AnimatedCounter value={batteryPercent} suffix="%" />
             </span>
             <span className="font-mono text-xs text-slate-400">Reserve Margin</span>
           </div>
@@ -110,7 +110,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
             : 'bg-white/5 border-white/10 hover:border-white/20'
         }`}>
           <div className="flex justify-between items-start">
-            <span className="font-mono text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+            <span className="font-mono text-3xs text-slate-400 uppercase font-bold tracking-wider">
               Route Status
             </span>
             <Route className={`w-4 h-4 ${isReplanning ? 'text-amber-400' : 'text-blue-400'}`} />
@@ -124,11 +124,11 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 mt-1">
+          <div className="flex items-center justify-between text-3xs font-mono text-slate-400 mt-1">
             <span>{isReplanning ? 'EST. DELAY: +14m 22s' : 'ETA: T-Minus 2.5h'}</span>
-            <span className="text-[9px] px-2 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 uppercase font-bold">
-              Locked
-            </span>
+            <StatusPill tone="success" className="py-0.5 px-2">
+              LOCKED
+            </StatusPill>
           </div>
         </div>
       </div>
@@ -140,7 +140,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
           size="sm"
           onClick={() => setIsDrawerOpen(!isDrawerOpen)}
           rightIcon={isDrawerOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-          className="text-[10px] font-mono uppercase tracking-widest px-4 !py-1 !min-h-[32px] rounded-full shadow-md backdrop-blur-md"
+          className="text-3xs font-mono uppercase tracking-widest px-4 !py-1 !min-h-[32px] rounded-full shadow-md backdrop-blur-md"
         >
           {isDrawerOpen ? 'Hide Diagnostics' : 'Constellation Diagnostics & Space Weather'}
         </Button>
@@ -152,7 +152,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Column 1: Current Relay Links */}
             <div className="flex flex-col gap-2.5">
-              <span className="font-mono text-[10px] text-slate-400 uppercase tracking-wider font-bold border-b border-white/10 pb-1.5 flex items-center justify-between">
+              <span className="font-mono text-3xs text-slate-400 uppercase tracking-wider font-bold border-b border-white/10 pb-1.5 flex items-center justify-between">
                 <span>Current Relay Links</span>
                 <Radio className="w-3.5 h-3.5 text-blue-400" />
               </span>
@@ -160,6 +160,9 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
                 {relays.map((r) => {
                   const isOffline = r.status === 'offline';
                   const isCandidate = r.status === 'candidate';
+                  const tone = isOffline ? 'destructive' : isCandidate ? 'accent' : 'success';
+                  const label = isOffline ? 'FAILURE' : isCandidate ? 'STANDBY' : 'ACTIVE';
+
                   return (
                     <div 
                       key={r.id} 
@@ -172,15 +175,9 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
                       }`}
                     >
                       <span className="font-mono font-medium">{r.name}</span>
-                      <span className={`px-2 py-0.5 rounded text-[9px] uppercase font-bold tracking-wider ${
-                        isOffline 
-                          ? 'bg-red-500/20 text-red-400' 
-                          : isCandidate 
-                          ? 'bg-blue-500/20 text-blue-400' 
-                          : 'bg-emerald-500/20 text-emerald-400'
-                      }`}>
-                        {isOffline ? 'Failure' : isCandidate ? 'Standby' : 'Active'}
-                      </span>
+                      <StatusPill tone={tone} className="py-0.5 px-2">
+                        {label}
+                      </StatusPill>
                     </div>
                   );
                 })}
@@ -189,13 +186,13 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
 
             {/* Column 2: Space Weather [DONKI] */}
             <div className="flex flex-col gap-2.5">
-              <span className="font-mono text-[10px] text-slate-400 uppercase tracking-wider font-bold border-b border-white/10 pb-1.5 flex items-center justify-between">
+              <span className="font-mono text-3xs text-slate-400 uppercase tracking-wider font-bold border-b border-white/10 pb-1.5 flex items-center justify-between">
                 <span>Space Weather [DONKI]</span>
                 <Thermometer className="w-3.5 h-3.5 text-amber-400" />
               </span>
               <div className="p-3 bg-white/5 rounded-xl border border-white/5 flex flex-col gap-2">
                 <div className="flex justify-between items-end">
-                  <span className="text-[11px] text-slate-300 italic font-sans">Solar Particle Event Risk</span>
+                  <span className="text-3xs text-slate-300 italic font-sans">Solar Particle Event Risk</span>
                   <span className="text-xs font-mono font-bold text-amber-400">Moderate</span>
                 </div>
                 {/* Histogram Bar Graphic */}
@@ -207,7 +204,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
                   <div className="flex-1 bg-amber-500 rounded-t-sm h-[85%]"></div>
                   <div className="flex-1 bg-slate-700/80 rounded-t-sm h-[30%]"></div>
                 </div>
-                <p className="text-[10px] text-slate-400 leading-tight">
+                <p className="text-3xs text-slate-400 leading-tight">
                   CME impact expected in T-04:20:00. Comm margins may degrade in high-polar shadow corridors.
                 </p>
               </div>
@@ -215,7 +212,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
 
             {/* Column 3: Distance and Mission Trajectory */}
             <div className="flex flex-col gap-2.5">
-              <span className="font-mono text-[10px] text-slate-400 uppercase tracking-wider font-bold border-b border-white/10 pb-1.5 flex items-center justify-between">
+              <span className="font-mono text-3xs text-slate-400 uppercase tracking-wider font-bold border-b border-white/10 pb-1.5 flex items-center justify-between">
                 <span>Excursion Telemetry</span>
                 <Navigation className="w-3.5 h-3.5 text-emerald-400" />
               </span>
@@ -234,7 +231,7 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
                   variant="secondary"
                   size="sm"
                   onClick={onForceRecalc}
-                  className="bg-blue-500/15 hover:bg-blue-500/25 border-blue-500/30 text-blue-300 font-mono text-[10px] font-bold !min-h-[32px]"
+                  className="bg-blue-500/15 hover:bg-blue-500/25 border-blue-500/30 text-blue-300 font-mono text-3xs font-bold !min-h-[32px]"
                 >
                   RE-CALCULATE TELEMETRY
                 </Button>

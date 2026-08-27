@@ -58,7 +58,7 @@ export const TopAppBarOverflowMenu: React.FC<TopAppBarOverflowMenuProps> = ({
         <div
           role="menu"
           aria-orientation="vertical"
-          className="absolute right-0 mt-2 w-56 glass-modal rounded-xl border border-white/10 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 font-mono text-xs"
+          className="absolute right-0 mt-2 w-56 glass-modal rounded-xl border border-white/10 shadow-2xl p-1.5 z-[var(--z-dropdown,50)] animate-in fade-in zoom-in-95 duration-100 font-mono text-xs"
         >
           <button
             role="menuitem"
@@ -66,7 +66,7 @@ export const TopAppBarOverflowMenu: React.FC<TopAppBarOverflowMenuProps> = ({
               onOpenProvenance();
               setIsOpen(false);
             }}
-            className="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer min-h-11"
+            className="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer min-h-11 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]"
           >
             <Database className="w-4 h-4 text-blue-400" />
             <span>NASA Provenance Data</span>
@@ -78,7 +78,7 @@ export const TopAppBarOverflowMenu: React.FC<TopAppBarOverflowMenuProps> = ({
               onOpenBriefing();
               setIsOpen(false);
             }}
-            className="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer min-h-11"
+            className="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer min-h-11 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]"
           >
             <FileText className="w-4 h-4 text-blue-400" />
             <span>Flight Rule Briefing</span>
@@ -91,7 +91,7 @@ export const TopAppBarOverflowMenu: React.FC<TopAppBarOverflowMenuProps> = ({
                 onOpenSettings();
                 setIsOpen(false);
               }}
-              className="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer min-h-11"
+              className="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer min-h-11 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]"
             >
               <Settings className="w-4 h-4 text-blue-400" />
               <span>System Settings</span>

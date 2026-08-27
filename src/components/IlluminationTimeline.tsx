@@ -51,21 +51,21 @@ export const IlluminationTimeline: React.FC<IlluminationTimelineProps> = ({
   };
 
   return (
-    <footer className="h-[64px] w-full bg-white/5 backdrop-blur-xl border-t border-white/10 flex flex-col justify-center px-4 md:px-6 z-30 shrink-0 select-none shadow-lg">
+    <footer className="h-[64px] w-full bg-white/5 backdrop-blur-xl border-t border-white/10 flex flex-col justify-center px-4 md:px-6 z-[var(--z-nav,30)] shrink-0 select-none shadow-lg">
       {/* Top Labels */}
       <div className="flex justify-between items-center mb-1">
         <div className="flex items-center gap-2">
           <Sun className="w-3.5 h-3.5 text-amber-400" />
-          <span className="font-mono text-[10px] text-slate-400 uppercase tracking-wider font-bold">
+          <span className="font-mono text-3xs text-slate-400 uppercase tracking-wider font-bold">
             POWER / ILLUMINATION TIMELINE (T-MINUS 24H TO T+24H)
           </span>
         </div>
 
-        <div className="flex items-center gap-3 font-mono text-[11px]">
+        <div className="flex items-center gap-3 font-mono text-3xs">
           <span className="text-slate-400">
             SUN ELEVATION: <strong className="text-emerald-400">1.4°</strong>
           </span>
-          <span className="text-blue-300 font-bold">
+          <span className="text-[var(--color-accent-subtle)] font-bold">
             CURRENT ORBIT: {orbitalAngle}°
           </span>
           <span className="text-slate-200 font-bold">
@@ -85,7 +85,7 @@ export const IlluminationTimeline: React.FC<IlluminationTimelineProps> = ({
         aria-valuetext={`${currentHour === 0 ? 'T-00:00 (NOW)' : currentHour > 0 ? `T+${currentHour}:00` : `T${currentHour}:00`}`}
         onClick={handleTimelineClick}
         onKeyDown={handleKeyDown}
-        className="relative w-full h-3 bg-slate-900/80 rounded-full cursor-pointer group overflow-hidden border border-white/10 shadow-inner outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+        className="relative w-full h-3 bg-slate-900/80 rounded-full cursor-pointer group overflow-hidden border border-white/10 shadow-inner outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]"
       >
         {/* Illumination & Shadow Segment Bars */}
         <div className="absolute inset-0 flex">
@@ -103,7 +103,7 @@ export const IlluminationTimeline: React.FC<IlluminationTimelineProps> = ({
 
         {/* Playhead Cursor */}
         <div 
-          className="absolute top-0 bottom-0 w-1.5 bg-blue-400 shadow-[0_0_12px_rgba(96,165,250,0.9)] transition-all"
+          className="absolute top-0 bottom-0 w-1.5 bg-[var(--color-accent-subtle)] shadow-[0_0_12px_rgba(96,165,250,0.9)] transition-all"
           style={{ left: `${playheadPercent}%`, transform: 'translateX(-50%)' }}
         >
           <div className="w-2.5 h-2.5 rounded-full bg-blue-300 -mt-0.5 -ml-0.5 shadow-sm" />
@@ -111,10 +111,10 @@ export const IlluminationTimeline: React.FC<IlluminationTimelineProps> = ({
       </div>
 
       {/* Bottom Time Markers */}
-      <div className="flex justify-between mt-1 px-1 text-[9px] font-mono text-slate-400">
+      <div className="flex justify-between mt-1 px-1 text-3xs font-mono text-slate-400">
         <span>T-24:00</span>
         <span>T-12:00</span>
-        <span className="text-blue-300 font-bold">T-00:00 (NOW)</span>
+        <span className="text-[var(--color-accent-subtle)] font-bold">T-00:00 (NOW)</span>
         <span>T+12:00</span>
         <span>T+24:00</span>
       </div>

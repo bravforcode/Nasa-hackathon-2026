@@ -1,3 +1,8 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import { forwardRef, useId, type InputHTMLAttributes, type ReactNode } from 'react';
 
 export type InputSize = 'sm' | 'md' | 'lg';
@@ -63,8 +68,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             disabled={disabled}
             aria-invalid={Boolean(error)}
             aria-describedby={describedBy}
-            className={`w-full font-mono bg-black/40 text-slate-100 placeholder:text-slate-500 border border-white/10 hover:border-white/20 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none transition-all duration-150 backdrop-blur-md disabled:bg-white/[0.02] disabled:text-slate-500 disabled:border-white/5 disabled:cursor-not-allowed ${
-              error ? '!border-red-400/80 focus:!ring-red-400' : ''
+            className={`w-full font-mono bg-black/40 text-slate-100 placeholder:text-[var(--color-text-faint)] border border-white/10 hover:border-white/20 focus:border-[var(--color-accent-subtle)] focus:ring-1 focus:ring-[var(--color-focus-ring)] outline-none transition-all duration-150 backdrop-blur-md disabled:bg-white/[0.02] disabled:text-[var(--color-text-faint)] disabled:border-white/5 disabled:cursor-not-allowed ${
+              error ? '!border-[var(--color-destructive-subtle)]/80 focus:!ring-[var(--color-destructive-subtle)]' : ''
             } ${leftIcon ? 'pl-9' : ''} ${rightIcon ? 'pr-9' : ''} ${
               sizeStyles[inputSize]
             } ${className}`}
@@ -77,12 +82,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
         </div>
         {error && (
-          <span id={errorId} role="alert" className="text-xs text-red-400 font-mono">
+          <span id={errorId} role="alert" className="text-3xs text-[var(--color-destructive-subtle)] font-mono">
             {error}
           </span>
         )}
         {!error && hint && (
-          <span id={hintId} className="text-xs text-slate-400 font-mono">
+          <span id={hintId} className="text-3xs text-[var(--color-text-muted)] font-mono">
             {hint}
           </span>
         )}

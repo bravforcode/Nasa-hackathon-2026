@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { Sparkles, CheckCircle2, Plus } from 'lucide-react';
-import { Modal, Button } from './ui';
+import { Modal, Button, StatusPill } from './ui';
 
 interface DesignAssistModalProps {
   isOpen: boolean;
@@ -73,9 +73,9 @@ export const DesignAssistModal: React.FC<DesignAssistModalProps> = ({
             <span className="font-bold text-blue-300 text-sm">
               RECOMMENDED: Deploy Shackleton Apex Relay (R-04)
             </span>
-            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold">
+            <StatusPill tone="success" className="py-0.5 px-2">
               +{coverageDelta}% COVERAGE
-            </span>
+            </StatusPill>
           </div>
 
           <p className="text-slate-300 leading-relaxed font-sans text-xs">
@@ -85,11 +85,11 @@ export const DesignAssistModal: React.FC<DesignAssistModalProps> = ({
 
         {/* Key Advantages */}
         <div className="space-y-2.5">
-          <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">
+          <div className="text-3xs text-slate-400 uppercase tracking-wider font-bold">
             ESTIMATED CONSTELLATION IMPACT:
           </div>
           
-          <div className="space-y-2 text-[11px]">
+          <div className="space-y-2 text-xs">
             <div className="flex justify-between items-center bg-white/5 border border-white/5 p-2.5 rounded-xl backdrop-blur-md">
               <span className="text-slate-400">Network Coverage:</span>
               <span className="text-emerald-400 font-bold">{coverageBefore}% → {coverageAfter}% (+{coverageDelta}%)</span>

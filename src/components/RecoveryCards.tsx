@@ -6,7 +6,7 @@
 import React from 'react';
 import { ArrowRight, ShieldCheck, Scale, FlaskConical, Sliders } from 'lucide-react';
 import { PlanOption, RoutePlan } from '../types';
-import { Button, Card } from './ui';
+import { Button, Card, StatusPill, AnimatedCounter } from './ui';
 
 interface RecoveryCardsProps {
   plans: RoutePlan[];
@@ -35,8 +35,8 @@ export const RecoveryCards: React.FC<RecoveryCardsProps> = ({
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto flex-1 max-w-md">
-          <span className={`font-mono text-[10px] uppercase font-semibold transition-colors ${
-            sliderValue < 40 ? 'text-amber-400 font-bold' : 'text-slate-500'
+          <span className={`font-mono text-3xs uppercase font-semibold transition-colors ${
+            sliderValue < 40 ? 'text-amber-400 font-bold' : 'text-[var(--color-text-faint)]'
           }`}>
             Science Focus
           </span>
@@ -48,11 +48,11 @@ export const RecoveryCards: React.FC<RecoveryCardsProps> = ({
             value={sliderValue}
             onChange={(e) => onSliderChange(Number(e.target.value))}
             aria-label="Optimization Weight: Science to Safety Focus"
-            className="flex-1 accent-blue-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+            className="flex-1 accent-blue-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]"
           />
 
-          <span className={`font-mono text-[10px] uppercase font-semibold transition-colors ${
-            sliderValue > 60 ? 'text-emerald-400 font-bold' : 'text-slate-500'
+          <span className={`font-mono text-3xs uppercase font-semibold transition-colors ${
+            sliderValue > 60 ? 'text-emerald-400 font-bold' : 'text-[var(--color-text-faint)]'
           }`}>
             Safety Focus
           </span>
@@ -82,15 +82,17 @@ export const RecoveryCards: React.FC<RecoveryCardsProps> = ({
                   onSelectPlan(plan.id);
                 }
               }}
-              className={`rounded-2xl p-4 flex flex-col justify-between transition-all duration-200 cursor-pointer relative overflow-hidden backdrop-blur-xl shadow-xl outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+              className={`rounded-2xl p-4 flex flex-col justify-between transition-all duration-200 cursor-pointer relative overflow-hidden backdrop-blur-xl shadow-xl outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)] ${
                 isSelected
                   ? 'bg-blue-500/10 border-2 border-blue-400/60 shadow-[0_0_25px_rgba(59,130,246,0.2)] ring-1 ring-blue-400/30'
                   : 'bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/[0.08]'
               }`}
             >
               {isRecommended && (
-                <div className="absolute top-3 right-3 bg-blue-500/20 text-blue-300 border border-blue-500/40 font-mono text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider backdrop-blur-md">
-                  RECOMMENDED
+                <div className="absolute top-3 right-3">
+                  <StatusPill tone="accent" className="py-0.5 px-2 font-bold tracking-wider">
+                    RECOMMENDED
+                  </StatusPill>
                 </div>
               )}
 
@@ -105,7 +107,7 @@ export const RecoveryCards: React.FC<RecoveryCardsProps> = ({
                   </h3>
                 </div>
 
-                {/* Viability Gauge */}
+                {/* Viability Gauge with AnimatedCounter */}
                 <div className="flex items-baseline gap-2 mb-3">
                   <span className={`font-mono text-2xl font-bold ${
                     plan.viabilityPercent >= 85
@@ -114,9 +116,9 @@ export const RecoveryCards: React.FC<RecoveryCardsProps> = ({
                       ? 'text-blue-400'
                       : 'text-red-400'
                   }`}>
-                    {plan.viabilityPercent}%
+                    <AnimatedCounter value={plan.viabilityPercent} suffix="%" />
                   </span>
-                  <span className="font-mono text-[10px] text-slate-400 uppercase tracking-wider">
+                  <span className="font-mono text-3xs text-slate-400 uppercase tracking-wider">
                     VIABILITY (J = {plan.scoreBreakdown.compositeJ})
                   </span>
                 </div>
@@ -124,19 +126,19 @@ export const RecoveryCards: React.FC<RecoveryCardsProps> = ({
                 {/* Metric Summary Rows */}
                 <div className="space-y-1.5 font-mono text-xs mb-3">
                   <div className="flex justify-between items-center bg-white/5 border border-white/5 px-2.5 py-1.5 rounded-xl">
-                    <span className="text-slate-400 text-[10px] uppercase">COVERAGE</span>
+                    <span className="text-slate-400 text-3xs uppercase">COVERAGE</span>
                     <span className="font-bold text-slate-200">{plan.coveragePercent}%</span>
                   </div>
 
                   <div className="flex justify-between items-center bg-white/5 border border-white/5 px-2.5 py-1.5 rounded-xl">
-                    <span className="text-slate-400 text-[10px] uppercase">POWER MARGIN</span>
+                    <span className="text-slate-400 text-3xs uppercase">POWER MARGIN</span>
                     <span className={`font-bold ${plan.batteryMarginPercent >= 20 ? 'text-emerald-400' : 'text-red-400'}`}>
                       {plan.batteryMarginPercent}%
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center bg-white/5 border border-white/5 px-2.5 py-1.5 rounded-xl">
-                    <span className="text-slate-400 text-[10px] uppercase">RECOVERY TIME</span>
+                    <span className="text-slate-400 text-3xs uppercase">RECOVERY TIME</span>
                     <span className="font-bold text-slate-200">{plan.travelTimeHours}h (est.)</span>
                   </div>
                 </div>
@@ -153,12 +155,12 @@ export const RecoveryCards: React.FC<RecoveryCardsProps> = ({
                     onOpenExplainability();
                   }}
                   rightIcon={<ArrowRight className="w-3 h-3" />}
-                  className="font-mono text-[10px] font-bold text-blue-300 hover:text-white !p-0 !min-h-0"
+                  className="font-mono text-3xs font-bold text-blue-300 hover:text-white !p-0 !min-h-0"
                 >
                   WHY THIS SCORE?
                 </Button>
 
-                <span className="font-mono text-[9px] text-slate-400">
+                <span className="font-mono text-3xs text-slate-400">
                   {plan.completedSitesCount}/{plan.totalSitesCount} Sites
                 </span>
               </div>
