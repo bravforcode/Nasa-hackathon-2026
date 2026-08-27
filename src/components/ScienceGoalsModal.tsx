@@ -6,7 +6,7 @@
 import React from 'react';
 import { FlaskConical, Clock } from 'lucide-react';
 import { ScienceSite } from '../types';
-import { Modal, Button } from './ui';
+import { Modal, Button, StatusPill } from './ui';
 
 interface ScienceGoalsModalProps {
   isOpen: boolean;
@@ -43,18 +43,17 @@ export const ScienceGoalsModal: React.FC<ScienceGoalsModalProps> = ({
         {scienceSites.map((site) => (
           <button
             key={site.id}
+            type="button"
             onClick={() => onToggleSiteStatus(site.id)}
-            className="w-full text-left p-3.5 rounded-xl bg-white/5 border border-white/10 hover:border-white/25 transition-all cursor-pointer flex flex-col justify-between gap-2 backdrop-blur-xl outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+            className="w-full text-left p-3.5 rounded-xl bg-white/5 border border-white/10 hover:border-white/25 transition-all cursor-pointer flex flex-col justify-between gap-2 backdrop-blur-xl outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]"
           >
             <div className="flex justify-between items-start w-full">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-sm text-white">{site.name}</span>
-                  <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
-                    site.priority === 'High' ? 'bg-red-500/15 text-red-400 border border-red-500/40' : 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/40'
-                  }`}>
+                  <StatusPill tone={site.priority === 'High' ? 'destructive' : 'accent'} className="py-0.5 px-1.5">
                     {site.priority} PRIORITY
-                  </span>
+                  </StatusPill>
                 </div>
                 <p className="text-xs text-slate-400 mt-1 font-sans">
                   {site.description}
@@ -62,19 +61,16 @@ export const ScienceGoalsModal: React.FC<ScienceGoalsModalProps> = ({
               </div>
 
               <div className="text-right shrink-0">
-                <span className={`text-xs font-bold px-2 py-1 rounded ${
-                  site.status === 'completed' 
-                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/40' 
-                    : site.status === 'active'
-                    ? 'bg-blue-500/15 text-blue-400 border border-blue-500/40'
-                    : 'bg-white/10 text-slate-400'
-                }`}>
+                <StatusPill
+                  tone={site.status === 'completed' ? 'success' : site.status === 'active' ? 'accent' : 'neutral'}
+                  className="py-0.5 px-2"
+                >
                   {site.status.toUpperCase()}
-                </span>
+                </StatusPill>
               </div>
             </div>
 
-            <div className="flex justify-between items-center text-[10px] text-blue-300 pt-2 border-t border-white/10 w-full">
+            <div className="flex justify-between items-center text-3xs text-blue-300 pt-2 border-t border-white/10 w-full">
               <span className="flex items-center gap-1">
                 <Clock className="w-3 h-3 text-cyan-400" /> Est. Duration: {site.estDurationHours}h
               </span>

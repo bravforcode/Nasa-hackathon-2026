@@ -165,3 +165,88 @@ export function losFactor(p: HorizonProfile): number {
   const raw = 1 - 0.06 * p.maxHorizonDeg - 0.2 * p.blockedFraction;
   return Math.max(MIN_LOS_FACTOR, Math.min(1, Math.round(raw * 100) / 100));
 }
+
+export interface HorizonRaySample {
+  azimuthDeg: number;
+  horizonAngleDeg: number;
+  peakDistanceKm: number;
+  peakElevationM: number;
+  isBlocked: boolean;
+}
+
+export interface DetailedHorizonSweepResult {
+  rays: HorizonRaySample[];
+  maxHorizonDeg: number;
+  blockedFraction: number;
+  losFactor: number;
+  observerElevationM: number;
+}
+
+/**
+ * 360-degree detailed ray-marching horizon sweep for 3D horizon visualization.
+ * Returns radial elevation angles and peak obstruction metrics for every azimuth.
+ */
+export function detailedHorizonSweep(
+  terrain: TerrainProvider,
+  latDeg: number,
+  lonDeg: number,
+  opts?: { azimuths?: number; maxDistKm?: number; stepKm?: number; mastHeightM?: number }
+): DetailedHorizonSweepResult {
+  const azimuths = opts?.azimuths ?? 36;
+  const maxDistKm = opts?.maxDistKm ?? 30;
+  const stepKm = opts?.stepKm ?? 0.75;
+  const mastHeightM = opts?.mastHeightM ?? 12;
+
+  const groundH0 = terrain.elevationAt(latDeg, lonDeg);
+  const h0 = groundH0 + mastHeightM;
+  let maxHorizonDeg = 0;
+  let blockedCount = 0;
+  const rays: HorizonRaySample[] = [];
+
+  for (let a = 0; a < azimuths; a++) {
+    const azRad = (a / azimuths) * 2 * Math.PI;
+    const azDeg = Math.round((a / azimuths) * 360);
+    const dx = Math.sin(azRad);
+    const dy = Math.cos(azRad);
+    let bestAngle = -90;
+    let peakDist = 0;
+    let peakElev = groundH0;
+
+    for (let d = stepKm; d <= maxDistKm; d += stepKm) {
+      const { lat, lon } = localKmToLatLon(dx * d, dy * d, latDeg, lonDeg);
+      const h = terrain.elevationAt(lat, lon);
+      const angleDeg = Math.atan2(h - h0, d * 1000) * RAD2DEG;
+      if (angleDeg > bestAngle) {
+        bestAngle = angleDeg;
+        peakDist = d;
+        peakElev = h;
+      }
+    }
+
+    const roundedAngle = Math.round(bestAngle * 10) / 10;
+    const isBlocked = roundedAngle > BLOCK_ANGLE_DEG;
+    if (isBlocked) blockedCount++;
+    if (roundedAngle > maxHorizonDeg) maxHorizonDeg = roundedAngle;
+
+    rays.push({
+      azimuthDeg: azDeg,
+      horizonAngleDeg: roundedAngle,
+      peakDistanceKm: Math.round(peakDist * 10) / 10,
+      peakElevationM: Math.round(peakElev),
+      isBlocked,
+    });
+  }
+
+  const profile: HorizonProfile = {
+    maxHorizonDeg: Math.round(maxHorizonDeg * 10) / 10,
+    blockedFraction: Math.round((blockedCount / azimuths) * 100) / 100,
+  };
+
+  return {
+    rays,
+    maxHorizonDeg: profile.maxHorizonDeg,
+    blockedFraction: profile.blockedFraction,
+    losFactor: losFactor(profile),
+    observerElevationM: Math.round(groundH0),
+  };
+}

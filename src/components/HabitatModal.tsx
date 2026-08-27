@@ -55,7 +55,7 @@ export const HabitatModal: React.FC<HabitatModalProps> = ({ isOpen, onClose }) =
 
         <div className="space-y-1.5">
           <div className="flex justify-between text-xs">
-            <span className="text-slate-400 uppercase tracking-wider text-[10px]">
+            <span className="text-slate-400 uppercase tracking-wider text-3xs">
               Base Electrical Storage Buffer (EPS)
             </span>
             <span className="text-emerald-400 font-bold">{powerReserve}% (Fission Surface Power)</span>
@@ -67,22 +67,22 @@ export const HabitatModal: React.FC<HabitatModalProps> = ({ isOpen, onClose }) =
             value={powerReserve}
             onChange={(e) => setPowerReserve(Number(e.target.value))}
             aria-label="Base Electrical Storage Buffer"
-            className="w-full accent-blue-400 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+            className="w-full accent-blue-400 h-1.5 bg-slate-800 rounded-lg cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)]"
           />
         </div>
 
         <div className="p-3 bg-black/40 rounded-xl border border-white/10 space-y-2">
-          <div className="flex justify-between items-center text-[11px]">
+          <div className="flex justify-between items-center text-3xs">
             <span className="text-slate-400">Life Support EPS:</span>
             <span className="text-emerald-400 font-bold">NOMINAL (101.3 kPa)</span>
           </div>
-          <div className="flex justify-between items-center text-[11px]">
+          <div className="flex justify-between items-center text-3xs">
             <span className="text-slate-400">High-Gain Earth LOS:</span>
             <span className="text-cyan-400 font-bold">DIRECT (Elevation +1.8°)</span>
           </div>
-          <div className="flex justify-between items-center text-[11px]">
+          <div className="flex justify-between items-center text-3xs">
             <span className="text-slate-400">Emergency Air Lock Cycle:</span>
-            <span className="text-white font-bold">READY (Bay 1 & 2)</span>
+            <span className="text-white font-bold">READY (Bay 1 &amp; 2)</span>
           </div>
         </div>
       </div>

@@ -14,7 +14,7 @@
       (function() {
         try {
           var t = localStorage.getItem('lunar_relay_theme');
-          if (t === 'hc' || t === 'dark') {
+          if (t === 'hc' || t === 'dark' || t === 'light') {
             document.documentElement.setAttribute('data-theme', t);
           } else {
             document.documentElement.setAttribute('data-theme', 'dark');

@@ -13,6 +13,13 @@ import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
 import { afterEach } from 'bun:test';
 
+if (typeof globalThis.URL.createObjectURL !== 'function') {
+  globalThis.URL.createObjectURL = () => 'blob:mock-url';
+}
+if (typeof globalThis.URL.revokeObjectURL !== 'function') {
+  globalThis.URL.revokeObjectURL = () => {};
+}
+
 afterEach(() => {
   cleanup();
 });

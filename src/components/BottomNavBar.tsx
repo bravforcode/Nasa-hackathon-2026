@@ -13,6 +13,7 @@ import {
   Layers 
 } from 'lucide-react';
 import { NavigationTab } from '../types';
+import { StatusPill } from './ui';
 
 interface BottomNavBarProps {
   activeTab: NavigationTab;
@@ -38,7 +39,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
     <nav
       role="navigation"
       aria-label="Mobile Navigation"
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-bg/90 backdrop-blur-xl border-t border-border flex items-center justify-around px-2 py-1.5 select-none shadow-2xl"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-[var(--z-nav,30)] bg-[#05060a]/90 backdrop-blur-xl border-t border-white/10 flex items-center justify-around px-2 py-1.5 select-none shadow-2xl"
     >
       {navItems.map((item) => {
         const isActive = activeTab === item.id;
@@ -48,21 +49,23 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
             type="button"
             onClick={() => onSelectTab(item.id)}
             aria-current={isActive ? 'page' : undefined}
-            className={`flex flex-col items-center justify-center gap-1 py-1 px-2 rounded-xl transition-all cursor-pointer min-h-11 min-w-11 outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+            className={`flex flex-col items-center justify-center gap-1 py-1 px-2 rounded-xl transition-all cursor-pointer min-h-11 min-w-11 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)] ${
               isActive
-                ? 'text-blue-400 font-bold bg-blue-500/15 shadow-inner'
+                ? 'text-[var(--color-accent-subtle)] font-bold bg-[var(--color-accent)]/15 shadow-inner'
                 : 'text-slate-400 hover:text-slate-200 active:bg-white/5'
             }`}
           >
             <div className="relative flex items-center justify-center">
               {item.icon}
               {item.badge && (
-                <span className="absolute -top-1.5 -right-2.5 text-[8px] px-1 rounded-full bg-emerald-500/20 text-emerald-400 font-mono font-bold">
-                  {item.badge}
-                </span>
+                <div className="absolute -top-2 -right-3.5">
+                  <StatusPill tone="success" className="py-0 px-1 font-mono min-h-0">
+                    {item.badge}
+                  </StatusPill>
+                </div>
               )}
             </div>
-            <span className="font-mono text-[9px] uppercase tracking-wider">
+            <span className="font-mono text-3xs uppercase tracking-wider">
               {item.label}
             </span>
           </button>
