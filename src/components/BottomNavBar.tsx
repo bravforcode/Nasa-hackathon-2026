@@ -59,7 +59,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
               {item.icon}
               {item.badge && (
                 <div className="absolute -top-2 -right-3.5">
-                  <StatusPill tone="success" className="py-0 px-1 font-mono text-[9px] min-h-0">
+                  <StatusPill tone="success" className="py-0 px-1 font-mono min-h-0">
                     {item.badge}
                   </StatusPill>
                 </div>
