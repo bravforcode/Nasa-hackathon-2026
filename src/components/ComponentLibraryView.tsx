@@ -14,8 +14,22 @@ import {
   Layers,
   Search,
   ExternalLink,
+  CheckCircle,
+  Compass,
 } from 'lucide-react';
-import { Button, IconButton, Input, Card, Modal } from './ui';
+import {
+  Button,
+  IconButton,
+  Input,
+  Card,
+  Modal,
+  StatusPill,
+  MetricLabel,
+  NavItem,
+  Tabs,
+  Tooltip,
+  AnimatedCounter,
+} from './ui';
 
 export const ComponentLibraryView: React.FC = () => {
   const [thrusterOutput, setThrusterOutput] = useState<number>(72);
@@ -27,6 +41,10 @@ export const ComponentLibraryView: React.FC = () => {
     contour: true,
   });
   const [isDemoModalOpen, setIsDemoModalOpen] = useState<boolean>(false);
+  const [demoActiveTab, setDemoActiveTab] = useState<string>('summary');
+  const [demoCounterVal, setDemoCounterVal] = useState<number>(87);
+  const [demoNavActive, setDemoNavActive] = useState<string>('nav-1');
+
 
   const simulateLoading = (btnType: string) => {
     setLoadingBtn(btnType);
@@ -407,6 +425,156 @@ export const ComponentLibraryView: React.FC = () => {
               <span className="w-2.5 h-2.5 rounded-sm border border-red-400 bg-red-400/20" /> Stress Condition
             </span>
           </div>
+        </Card>
+      </div>
+
+      {/* Phase 1 Redesign: Shared UI Primitives Showcase */}
+      <div className="space-y-6">
+        <div className="border-b border-white/10 pb-2">
+          <h2 className="text-lg font-bold text-white font-headline">
+            Phase 1 Core Primitives & Tokens Matrix
+          </h2>
+          <p className="text-3xs text-slate-400">
+            Accessible, WCAG AA verified components supporting dark/high-contrast theming & reduced motion.
+          </p>
+        </div>
+
+        {/* Grid 1: StatusPill & MetricLabel */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* StatusPill Matrix */}
+          <Card variant="default" padding="md" className="space-y-4">
+            <header className="text-xs font-bold text-blue-300 border-b border-white/10 pb-2 flex items-center justify-between">
+              <span>STATUS_PILL_VARIANTS</span>
+              <span className="text-3xs text-slate-400 font-normal">role="status"</span>
+            </header>
+            <div className="flex flex-wrap gap-2.5 items-center">
+              <StatusPill tone="accent" pulse>ACCENT / NOMINAL</StatusPill>
+              <StatusPill tone="success" icon={<CheckCircle className="w-3 h-3" />}>SUCCESS</StatusPill>
+              <StatusPill tone="warning" pulse>WARNING STATE</StatusPill>
+              <StatusPill tone="destructive" pulse>DESTRUCTIVE</StatusPill>
+              <StatusPill tone="neutral">NEUTRAL</StatusPill>
+            </div>
+          </Card>
+
+          {/* MetricLabel Matrix */}
+          <Card variant="default" padding="md" className="space-y-4">
+            <header className="text-xs font-bold text-blue-300 border-b border-white/10 pb-2 flex items-center justify-between">
+              <span>METRIC_LABEL_SEMANTICS</span>
+              <span className="text-3xs text-slate-400 font-normal">&lt;dl&gt; / &lt;dt&gt; / &lt;dd&gt;</span>
+            </header>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <MetricLabel label="Solar Window" value="14:22:09 LST" valueTone="accent" />
+              <MetricLabel label="Fleet Health" value="98.5% NOM" valueTone="success" />
+              <MetricLabel label="Comm Attenuation" value="+3.2 dB" valueTone="warning" />
+              <MetricLabel label="Dead Zone Delta" value="2 ZONES" valueTone="destructive" />
+              <MetricLabel label="Orbit Epoch" value="2026.239" valueTone="neutral" />
+            </div>
+          </Card>
+        </div>
+
+        {/* Grid 2: NavItem & AnimatedCounter & Tooltip */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* NavItem interactive */}
+          <Card variant="default" padding="md" className="space-y-3">
+            <header className="text-xs font-bold text-blue-300 border-b border-white/10 pb-2">
+              NAV_ITEM_PRIMITIVES (44px TOUCH)
+            </header>
+            <div className="flex flex-col gap-1.5">
+              <NavItem
+                icon={<Compass className="w-4 h-4" />}
+                label="Region Select"
+                active={demoNavActive === 'nav-1'}
+                onClick={() => setDemoNavActive('nav-1')}
+              />
+              <NavItem
+                icon={<Radio className="w-4 h-4" />}
+                label="Relay Network"
+                badge={{ text: '95%', tone: 'success' }}
+                active={demoNavActive === 'nav-2'}
+                onClick={() => setDemoNavActive('nav-2')}
+              />
+              <NavItem
+                icon={<AlertTriangle className="w-4 h-4" />}
+                label="Stress Scenario"
+                badge={{ text: 'ALERT', tone: 'destructive' }}
+                active={demoNavActive === 'nav-3'}
+                onClick={() => setDemoNavActive('nav-3')}
+              />
+            </div>
+          </Card>
+
+          {/* AnimatedCounter interactive */}
+          <Card variant="default" padding="md" className="space-y-4">
+            <header className="text-xs font-bold text-blue-300 border-b border-white/10 pb-2">
+              ANIMATED_COUNTER (GSAP TWEEN)
+            </header>
+            <div className="flex flex-col items-center justify-center p-4 space-y-3">
+              <div className="font-mono text-3xl font-bold text-blue-400">
+                <AnimatedCounter value={demoCounterVal} suffix="%" />
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="secondary" onClick={() => setDemoCounterVal((v) => Math.max(10, v - 15))}>
+                  -15%
+                </Button>
+                <Button size="sm" variant="primary" onClick={() => setDemoCounterVal((v) => Math.min(100, v + 15))}>
+                  +15%
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          {/* Tooltip interactive */}
+          <Card variant="default" padding="md" className="space-y-4">
+            <header className="text-xs font-bold text-blue-300 border-b border-white/10 pb-2">
+              TOOLTIP_PRIMITIVES (WCAG 1.4.13)
+            </header>
+            <div className="grid grid-cols-2 gap-3 p-2">
+              <Tooltip content="Tooltip positioned TOP" side="top">
+                <Button variant="secondary" size="sm" className="w-full">
+                  Top Tooltip
+                </Button>
+              </Tooltip>
+              <Tooltip content="Tooltip positioned BOTTOM" side="bottom">
+                <Button variant="secondary" size="sm" className="w-full">
+                  Bottom Tooltip
+                </Button>
+              </Tooltip>
+              <Tooltip content="Tooltip positioned LEFT" side="left">
+                <Button variant="secondary" size="sm" className="w-full">
+                  Left Tooltip
+                </Button>
+              </Tooltip>
+              <Tooltip content="Tooltip positioned RIGHT" side="right">
+                <Button variant="secondary" size="sm" className="w-full">
+                  Right Tooltip
+                </Button>
+              </Tooltip>
+            </div>
+          </Card>
+        </div>
+
+        {/* Compound Tabs Interactive */}
+        <Card variant="default" padding="md" className="space-y-4">
+          <header className="text-xs font-bold text-blue-300 border-b border-white/10 pb-2 flex items-center justify-between">
+            <span>COMPOUND_TABS (ROVING TABINDEX)</span>
+            <span className="text-3xs text-slate-400 font-normal">Use Arrow keys, Home, End</span>
+          </header>
+          <Tabs value={demoActiveTab} onValueChange={setDemoActiveTab} className="w-full">
+            <Tabs.List aria-label="Component Demo Tabs">
+              <Tabs.Trigger value="summary">Mission Summary</Tabs.Trigger>
+              <Tabs.Trigger value="telemetry">Live Telemetry</Tabs.Trigger>
+              <Tabs.Trigger value="provenance">Data Lineage</Tabs.Trigger>
+            </Tabs.List>
+            <Tabs.Content value="summary" className="p-4 bg-white/5 rounded-b-xl text-xs text-slate-300">
+              Primary mission parameters active: Polar coverage exceeds 90% floor with 2 redundant relay paths.
+            </Tabs.Content>
+            <Tabs.Content value="telemetry" className="p-4 bg-white/5 rounded-b-xl text-xs text-slate-300">
+              Live link SNR +14.2 dB, rover battery buffer 32% (Flight Rule 14.2 nominal).
+            </Tabs.Content>
+            <Tabs.Content value="provenance" className="p-4 bg-white/5 rounded-b-xl text-xs text-slate-300">
+              Sourced from NASA LOLA DEM 128ppd elevation tiles and DONKI space-weather real-time stream.
+            </Tabs.Content>
+          </Tabs>
         </Card>
       </div>
 

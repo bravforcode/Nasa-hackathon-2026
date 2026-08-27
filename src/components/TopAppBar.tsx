@@ -14,7 +14,7 @@ import {
   AlertTriangle 
 } from 'lucide-react';
 import { FailureScenarioType } from '../types';
-import { Button, IconButton } from './ui';
+import { Button, IconButton, StatusPill, MetricLabel, Tooltip, AnimatedCounter } from './ui';
 import { TopAppBarOverflowMenu } from './TopAppBarOverflowMenu';
 
 interface TopAppBarProps {
@@ -41,7 +41,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   const isScenarioActive = activeScenario !== 'nominal';
 
   return (
-    <header className="bg-white/5 backdrop-blur-md w-full top-0 border-b border-white/10 flex justify-between items-center px-4 md:px-6 py-2.5 z-40 shrink-0 h-[64px]">
+    <header className="bg-white/5 backdrop-blur-md w-full top-0 border-b border-white/10 flex justify-between items-center px-4 md:px-6 py-2.5 z-[var(--z-header,40)] shrink-0 h-[64px]">
       {/* Left: Brand & Mode Tag */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2.5">
@@ -52,7 +52,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
             <span className="font-headline font-bold text-white text-base md:text-lg tracking-tight leading-tight">
               LUNAR RELAY OS
             </span>
-            <span className="font-mono text-[10px] text-slate-400 tracking-[0.2em] uppercase">
+            <span className="font-mono text-3xs text-slate-400 tracking-[0.2em] uppercase">
               SOUTH POLE MISSION CONTINUITY INTEL
             </span>
           </div>
@@ -60,34 +60,44 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
 
         {isScenarioActive && (
           <button 
+            type="button"
             onClick={onOpenScenarioModal}
-            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-red-500/30 bg-red-500/15 text-red-400 font-mono text-[11px] font-bold tracking-wider animate-pulse hover:bg-red-500/25 transition-colors cursor-pointer backdrop-blur-md"
+            aria-label="Active Scenario Detected — Click to inspect"
+            className="hidden sm:inline-flex cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus-ring)] rounded-lg"
           >
-            <span className="w-1.5 h-1.5 bg-red-400 rounded-full"></span>
-            SCENARIO ACTIVE
+            <StatusPill tone="destructive" pulse>
+              SCENARIO ACTIVE
+            </StatusPill>
           </button>
         )}
       </div>
 
       {/* Center/Right: Network telemetry pill & Quick Action buttons */}
       <div className="flex items-center gap-2 md:gap-3">
-        {/* Operational Window & Provenance (Frosted Metrics) */}
+        {/* Operational Window & Provenance (Frosted Metrics via MetricLabel) */}
         <div className="hidden xl:flex items-center gap-5 pr-2 border-r border-white/10">
-          <div className="text-right">
-            <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Operational Window</p>
-            <p className="text-xs font-mono text-blue-400">14:22:09 LST</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Data Provenance</p>
-            <p className="text-xs font-mono text-emerald-400">LRO / DONKI SYNCED</p>
-          </div>
+          <MetricLabel
+            label="Operational Window"
+            value="14:22:09 LST"
+            valueTone="accent"
+            align="right"
+          />
+          <MetricLabel
+            label="Data Provenance"
+            value="LRO / DONKI SYNCED"
+            valueTone="success"
+            align="right"
+          />
         </div>
 
         {/* Coverage pill */}
         <div className="hidden lg:flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10 backdrop-blur-md">
           <Activity className="w-3.5 h-3.5 text-blue-400" />
           <span className="font-mono text-xs text-slate-300">
-            Coverage: <strong className={coveragePercent >= 90 ? 'text-emerald-400' : 'text-amber-400'}>{coveragePercent}%</strong>
+            Coverage:{' '}
+            <strong className={coveragePercent >= 90 ? 'text-emerald-400' : 'text-amber-400'}>
+              <AnimatedCounter value={coveragePercent} suffix="%" />
+            </strong>
             {' · '}
             <span className={deadZonesCount > 0 ? 'text-red-400' : 'text-emerald-400'}>
               {deadZonesCount} dead zone{deadZonesCount !== 1 ? 's' : ''}
@@ -117,32 +127,38 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
           <span>Design Assist</span>
         </Button>
 
-        {/* Desktop secondary actions (hidden on mobile, in overflow menu) */}
+        {/* Desktop secondary actions wrapped in Tooltips */}
         <div className="hidden lg:flex items-center gap-2">
           {/* NASA Provenance Data Button */}
-          <IconButton 
-            icon={<Database className="w-4 h-4" />}
-            aria-label="NASA Data Provenance & Sources"
-            onClick={onOpenProvenance}
-            size="md"
-          />
+          <Tooltip content="NASA Data Provenance & Sources" side="bottom">
+            <IconButton 
+              icon={<Database className="w-4 h-4" />}
+              aria-label="NASA Data Provenance & Sources"
+              onClick={onOpenProvenance}
+              size="md"
+            />
+          </Tooltip>
 
           {/* Flight Rule Briefing Export */}
-          <IconButton 
-            icon={<FileText className="w-4 h-4" />}
-            aria-label="Export NASA Flight Rule Briefing"
-            onClick={onOpenBriefing}
-            size="md"
-          />
+          <Tooltip content="Export NASA Flight Rule Briefing" side="bottom">
+            <IconButton 
+              icon={<FileText className="w-4 h-4" />}
+              aria-label="Export NASA Flight Rule Briefing"
+              onClick={onOpenBriefing}
+              size="md"
+            />
+          </Tooltip>
 
           <div className="h-4 w-px bg-white/10"></div>
 
-          <IconButton 
-            icon={<Settings className="w-4 h-4" />}
-            aria-label="System Settings & Theme"
-            onClick={onOpenSettings || (() => {})}
-            size="md"
-          />
+          <Tooltip content="System Settings & Theme" side="bottom">
+            <IconButton 
+              icon={<Settings className="w-4 h-4" />}
+              aria-label="System Settings & Theme"
+              onClick={onOpenSettings || (() => {})}
+              size="md"
+            />
+          </Tooltip>
         </div>
 
         {/* Mobile/Tablet Overflow Menu */}
