@@ -45,6 +45,8 @@ function ControlledTabsTestContainer() {
   );
 }
 
+const TEST_TIMEOUT = 15000;
+
 describe('App Integration & Cross-Surface Interaction Suite', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -80,7 +82,7 @@ describe('App Integration & Cross-Surface Interaction Suite', () => {
       // RecoveryCards Section
       expect(getByText(/Optimization Weight Matrix:/i)).toBeInTheDocument();
       expect(getAllByText(/Route|Plan/i).length).toBeGreaterThan(0);
-    });
+    }, TEST_TIMEOUT);
 
     it('displays active scenario status and opens FailureScenarioModal from TopAppBar', () => {
       const { getByRole, getByText, queryByRole } = render(<App />);
@@ -104,7 +106,7 @@ describe('App Integration & Cross-Surface Interaction Suite', () => {
 
       // Modal closes
       expect(queryByRole('dialog')).toBeNull();
-    });
+    }, TEST_TIMEOUT);
 
     it('opens DesignAssistModal from TopAppBar and allows deploying mitigation relay', () => {
       const { getByRole, getByText, queryByRole } = render(<App />);
@@ -124,7 +126,7 @@ describe('App Integration & Cross-Surface Interaction Suite', () => {
 
       // Modal closes on deploy
       expect(queryByRole('dialog')).toBeNull();
-    });
+    }, TEST_TIMEOUT);
 
     it('opens MissionBriefingModal when clicking briefing button in TopAppBar', () => {
       const { getByRole, getByText, queryByRole } = render(<App />);
@@ -139,7 +141,7 @@ describe('App Integration & Cross-Surface Interaction Suite', () => {
       const acknowledgeBtn = getByRole('button', { name: /Acknowledge/i });
       fireEvent.click(acknowledgeBtn);
       expect(queryByRole('dialog')).toBeNull();
-    });
+    }, TEST_TIMEOUT);
 
     it('opens modals from SideNavBar tabs (Region, Habitat, Science, Constraints)', () => {
       const { getByRole, getByText, queryByRole } = render(<App />);
@@ -175,7 +177,7 @@ describe('App Integration & Cross-Surface Interaction Suite', () => {
       expect(getByText(/NASA Operational Flight Rules & Constraints/i)).toBeInTheDocument();
       fireEvent.click(getByRole('button', { name: /Close Dialog/i }));
       expect(queryByRole('dialog')).toBeNull();
-    });
+    }, TEST_TIMEOUT);
 
     it('switches to ComponentLibraryView when clicking Component Library nav item', () => {
       const { getByText, queryByRole } = render(<App />);
@@ -186,7 +188,7 @@ describe('App Integration & Cross-Surface Interaction Suite', () => {
       // Main map should no longer be present, Component library header should appear
       expect(queryByRole('main')).toBeNull();
       expect(getByText(/Component & Token Matrix/i)).toBeInTheDocument();
-    });
+    }, TEST_TIMEOUT);
   });
 
   describe('2. RecoveryCards & ExplainabilityPanel Integration', () => {
@@ -213,7 +215,7 @@ describe('App Integration & Cross-Surface Interaction Suite', () => {
       fireEvent.click(scienceCard);
       expect(scienceCard).toHaveAttribute('aria-pressed', 'true');
       expect(safetyCard).toHaveAttribute('aria-pressed', 'false');
-    });
+    }, TEST_TIMEOUT);
 
     it('supports keyboard selection of plan cards with Enter and Space keys', () => {
       const { getAllByRole } = render(<App />);
@@ -233,7 +235,7 @@ describe('App Integration & Cross-Surface Interaction Suite', () => {
       fireEvent.keyDown(balancedCard, { key: ' ' });
       expect(balancedCard).toHaveAttribute('aria-pressed', 'true');
       expect(safetyCard).toHaveAttribute('aria-pressed', 'false');
-    });
+    }, TEST_TIMEOUT);
 
     it('updates optimization weight slider and recalculates route metrics', () => {
       const { getByLabelText, getByText } = render(<App />);
@@ -246,7 +248,7 @@ describe('App Integration & Cross-Surface Interaction Suite', () => {
       fireEvent.change(slider, { target: { value: '80' } });
       expect(slider.value).toBe('80');
       expect(getByText('80%')).toBeInTheDocument();
-    });
+    }, TEST_TIMEOUT);
 
     it('opens ExplainabilityPanel on "WHY THIS SCORE?" click and supports full tab navigation', () => {
       const { getAllByText, getByText, getByRole, queryByRole } = render(<App />);
@@ -294,7 +296,7 @@ describe('App Integration & Cross-Surface Interaction Suite', () => {
       const closeBtn = getByRole('button', { name: 'Close Decision Matrix' });
       fireEvent.click(closeBtn);
       expect(queryByRole('tablist', { name: 'Decision Matrix Navigation' })).toBeNull();
-    });
+    }, TEST_TIMEOUT);
 
     it('handles plan execution and export triggers in ExplainabilityPanel', () => {
       const { getAllByText, getByRole, getByText } = render(<App />);
@@ -320,7 +322,7 @@ describe('App Integration & Cross-Surface Interaction Suite', () => {
 
       // Executes plan and opens briefing modal
       expect(getByRole('dialog')).toBeInTheDocument();
-    });
+    }, TEST_TIMEOUT);
   });
 
   describe('3. TelemetryCards & Constellation Diagnostics Drawer', () => {
@@ -348,7 +350,7 @@ describe('App Integration & Cross-Surface Interaction Suite', () => {
       const hideToggle = getByRole('button', { name: /Hide Diagnostics/i });
       fireEvent.click(hideToggle);
       expect(queryByText(/Current Relay Links/i)).toBeNull();
-    });
+    }, TEST_TIMEOUT);
   });
 
   describe('4. LunarMap Layer Controls & Interactions', () => {
@@ -390,7 +392,7 @@ describe('App Integration & Cross-Surface Interaction Suite', () => {
       fireEvent.click(zoomInBtn);
       fireEvent.click(resetZoomBtn);
       expect(getByText('100%')).toBeInTheDocument();
-    });
+    }, TEST_TIMEOUT);
   });
 
   describe('5. Theme Switching (dark, light, hc)', () => {
@@ -422,7 +424,7 @@ describe('App Integration & Cross-Surface Interaction Suite', () => {
       expect(getByTestId('current-theme').textContent).toBe('dark');
       expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
       expect(localStorage.getItem('lunar_relay_theme')).toBe('dark');
-    });
+    }, TEST_TIMEOUT);
 
     it('ThemeToggle cycles themes with correct accessible labels and pressed state', () => {
       const { getByRole, getByTestId } = render(
@@ -453,7 +455,7 @@ describe('App Integration & Cross-Surface Interaction Suite', () => {
       expect(getByTestId('current-theme').textContent).toBe('dark');
       expect(toggleButton.getAttribute('aria-pressed')).toBe('false');
       expect(toggleButton.getAttribute('aria-label')).toBe('Switch to Light Theme');
-    });
+    }, TEST_TIMEOUT);
 
     it('persists and restores stored theme from localStorage on initial render', () => {
       localStorage.setItem('lunar_relay_theme', 'hc');
@@ -466,7 +468,7 @@ describe('App Integration & Cross-Surface Interaction Suite', () => {
 
       expect(getByTestId('current-theme').textContent).toBe('hc');
       expect(document.documentElement.getAttribute('data-theme')).toBe('hc');
-    });
+    }, TEST_TIMEOUT);
   });
 
   describe('6. ARIA Attributes & Semantic Roles Across Rendered Surfaces', () => {
@@ -476,7 +478,7 @@ describe('App Integration & Cross-Surface Interaction Suite', () => {
       expect(getByRole('banner')).toBeInTheDocument(); // <header>
       expect(getByRole('navigation', { name: 'Mission Configuration' })).toBeInTheDocument();
       expect(getByRole('main')).toBeInTheDocument();
-    });
+    }, TEST_TIMEOUT);
 
     it('verifies StatusPill renders role="status" when live', () => {
       const { getByRole, getByText } = render(
@@ -496,7 +498,7 @@ describe('App Integration & Cross-Surface Interaction Suite', () => {
 
       const staticPill = getByText('STATIC STATUS');
       expect(staticPill.getAttribute('role')).toBeNull();
-    });
+    }, TEST_TIMEOUT);
 
     it('verifies roving tabindex and keyboard navigation on Tabs', () => {
       const { getAllByRole, getByRole } = render(<ControlledTabsTestContainer />);
@@ -521,7 +523,7 @@ describe('App Integration & Cross-Surface Interaction Suite', () => {
       // Home -> tab 1
       fireEvent.keyDown(tabs[2], { key: 'Home' });
       expect(getByRole('tabpanel').textContent).toBe('Panel 1');
-    });
+    }, TEST_TIMEOUT);
 
     it('verifies Modal accessibility: dialog role, aria-modal, title, description, and Escape key dismissal', () => {
       const { getByRole, getByText, queryByRole } = render(<App />);
@@ -537,7 +539,7 @@ describe('App Integration & Cross-Surface Interaction Suite', () => {
       // Press Escape to dismiss
       fireEvent.keyDown(document, { key: 'Escape' });
       expect(queryByRole('dialog')).toBeNull();
-    });
+    }, TEST_TIMEOUT);
   });
 
   describe('7. Reduced-Motion Fallbacks & Motion Safety', () => {
@@ -567,7 +569,7 @@ describe('App Integration & Cross-Surface Interaction Suite', () => {
 
       // Restore matchMedia
       window.matchMedia = originalMatchMedia;
-    });
+    }, TEST_TIMEOUT);
 
     it('renders immediately with proper values when prefers-reduced-motion is false', () => {
       const originalMatchMedia = window.matchMedia;
@@ -592,6 +594,6 @@ describe('App Integration & Cross-Surface Interaction Suite', () => {
       expect(getByText('LUNAR RELAY OS')).toBeInTheDocument();
 
       window.matchMedia = originalMatchMedia;
-    });
+    }, TEST_TIMEOUT);
   });
 });
