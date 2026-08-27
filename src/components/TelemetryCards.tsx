@@ -16,7 +16,7 @@ import {
   Navigation
 } from 'lucide-react';
 import { RelayNode } from '../types';
-import { Button, Card, StatusPill, AnimatedCounter } from './ui';
+import { Button, Card, StatusPill, MetricLabel, AnimatedCounter } from './ui';
 
 interface TelemetryCardsProps {
   coveragePercent: number;
@@ -216,14 +216,20 @@ export const TelemetryCards: React.FC<TelemetryCardsProps> = ({
                 <span>Excursion Telemetry</span>
                 <Navigation className="w-3.5 h-3.5 text-emerald-400" />
               </span>
-              <div className="space-y-2 text-xs font-mono">
-                <div className="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
-                  <span className="text-slate-400">Distance to Shelter</span>
-                  <span className="text-white font-bold">{distanceKm.toFixed(2)} km</span>
+              <div className="space-y-2 font-mono">
+                <div className="bg-white/5 p-2.5 rounded-xl border border-white/5">
+                  <MetricLabel
+                    label="Distance to Shelter"
+                    value={`${distanceKm.toFixed(2)} km`}
+                    valueTone="neutral"
+                  />
                 </div>
-                <div className="flex justify-between items-center bg-white/5 p-2.5 rounded-xl border border-white/5">
-                  <span className="text-slate-400">Surface Temp</span>
-                  <span className="text-blue-300 font-bold">-153 °C (120 K)</span>
+                <div className="bg-white/5 p-2.5 rounded-xl border border-white/5">
+                  <MetricLabel
+                    label="Surface Temp"
+                    value="-153 °C (120 K)"
+                    valueTone="accent"
+                  />
                 </div>
               </div>
               <div className="flex justify-end pt-1">

@@ -6,7 +6,7 @@
 import React from 'react';
 import { ArrowRight, ShieldCheck, Scale, FlaskConical, Sliders } from 'lucide-react';
 import { PlanOption, RoutePlan } from '../types';
-import { Button, Card, StatusPill, AnimatedCounter } from './ui';
+import { Button, Card, StatusPill, MetricLabel, AnimatedCounter } from './ui';
 
 interface RecoveryCardsProps {
   plans: RoutePlan[];
@@ -123,24 +123,24 @@ export const RecoveryCards: React.FC<RecoveryCardsProps> = ({
                   </span>
                 </div>
 
-                {/* Metric Summary Rows */}
-                <div className="space-y-1.5 font-mono text-xs mb-3">
-                  <div className="flex justify-between items-center bg-white/5 border border-white/5 px-2.5 py-1.5 rounded-xl">
-                    <span className="text-slate-400 text-3xs uppercase">COVERAGE</span>
-                    <span className="font-bold text-slate-200">{plan.coveragePercent}%</span>
-                  </div>
-
-                  <div className="flex justify-between items-center bg-white/5 border border-white/5 px-2.5 py-1.5 rounded-xl">
-                    <span className="text-slate-400 text-3xs uppercase">POWER MARGIN</span>
-                    <span className={`font-bold ${plan.batteryMarginPercent >= 20 ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {plan.batteryMarginPercent}%
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center bg-white/5 border border-white/5 px-2.5 py-1.5 rounded-xl">
-                    <span className="text-slate-400 text-3xs uppercase">RECOVERY TIME</span>
-                    <span className="font-bold text-slate-200">{plan.travelTimeHours}h (est.)</span>
-                  </div>
+                {/* Metric Summary Rows wired with MetricLabel */}
+                <div className="grid grid-cols-3 gap-2 font-mono mb-3 bg-white/5 border border-white/5 p-2.5 rounded-xl">
+                  <MetricLabel
+                    label="Coverage"
+                    value={`${plan.coveragePercent}%`}
+                    valueTone="neutral"
+                  />
+                  <MetricLabel
+                    label="Power"
+                    value={`${plan.batteryMarginPercent}%`}
+                    valueTone={plan.batteryMarginPercent >= 20 ? 'success' : 'destructive'}
+                  />
+                  <MetricLabel
+                    label="Recovery"
+                    value={`${plan.travelTimeHours}h`}
+                    valueTone="neutral"
+                    align="right"
+                  />
                 </div>
               </div>
 

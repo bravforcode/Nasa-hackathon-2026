@@ -13,6 +13,7 @@ import {
   Layers 
 } from 'lucide-react';
 import { NavigationTab } from '../types';
+import { StatusPill } from './ui';
 
 interface BottomNavBarProps {
   activeTab: NavigationTab;
@@ -57,9 +58,11 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
             <div className="relative flex items-center justify-center">
               {item.icon}
               {item.badge && (
-                <span className="absolute -top-1.5 -right-3 text-3xs px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-400 font-mono font-bold">
-                  {item.badge}
-                </span>
+                <div className="absolute -top-2 -right-3.5">
+                  <StatusPill tone="success" className="py-0 px-1 font-mono text-[9px] min-h-0">
+                    {item.badge}
+                  </StatusPill>
+                </div>
               )}
             </div>
             <span className="font-mono text-3xs uppercase tracking-wider">
