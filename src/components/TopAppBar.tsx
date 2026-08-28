@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Radio, 
   Settings,
@@ -18,7 +18,7 @@ import {
 import { FailureScenarioType } from '../types';
 import { Button, IconButton, StatusPill, MetricLabel, Tooltip, AnimatedCounter } from './ui';
 import { TopAppBarOverflowMenu } from './TopAppBarOverflowMenu';
-import { globalCapcomAudio } from '../services/audio/capcom';
+import { globalCapcomAudio, type CapcomCalloutEntry } from '../services/audio/capcom';
 
 interface TopAppBarProps {
   coveragePercent: number;
@@ -43,6 +43,24 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
 }) => {
   const isScenarioActive = activeScenario !== 'nominal';
   const [isAudioMuted, setIsAudioMuted] = useState<boolean>(!globalCapcomAudio.isEnabled());
+  const [activeCallout, setActiveCallout] = useState<CapcomCalloutEntry | null>(null);
+
+  // Subscribe to live CAPCOM voice broadcasts for synchronized closed captions
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const unsubscribe = globalCapcomAudio.onCallout((entry) => {
+      setActiveCallout(entry);
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setActiveCallout(null);
+      }, 5000);
+    });
+
+    return () => {
+      unsubscribe();
+      clearTimeout(timeoutId);
+    };
+  }, []);
 
   const handleToggleAudio = () => {
     const nextMuted = !isAudioMuted;
@@ -82,6 +100,17 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
               SCENARIO ACTIVE
             </StatusPill>
           </button>
+        )}
+
+        {activeCallout && (
+          <div 
+            role="status" 
+            aria-live="polite"
+            className="hidden 2xl:flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-mono text-3xs animate-fade-in"
+          >
+            <Volume2 className="w-3 h-3 text-cyan-400 animate-pulse shrink-0" />
+            <span className="truncate max-w-[320px]">{activeCallout.text}</span>
+          </div>
         )}
       </div>
 

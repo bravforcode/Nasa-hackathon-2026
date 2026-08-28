@@ -34,14 +34,40 @@ export const LunarSurface3D: React.FC<LunarSurface3DProps> = ({
   const [isRotating, setIsRotating] = useState<boolean>(true);
   const [webglSupported, setWebglSupported] = useState<boolean>(true);
 
+  // Refs read by the animate() closure — never trigger re-init
+  const isRotatingRef = useRef<boolean>(isRotating);
+  isRotatingRef.current = isRotating;
+
+  const viewPresetRef = useRef<ViewPreset>(viewPreset);
+  viewPresetRef.current = viewPreset;
+
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+
   const terrain = useMemo(() => new SyntheticPolarTerrain(), []);
 
+  // Lightweight effect: update camera position when preset changes, no re-init
+  useEffect(() => {
+    const camera = cameraRef.current;
+    if (!camera) return;
+
+    if (viewPreset === 'orbit') {
+      camera.position.set(0, 35, 45);
+      camera.lookAt(0, 0, 0);
+    } else if (viewPreset === 'ridge') {
+      camera.position.set(0, 4, 25);
+      camera.lookAt(0, 8, -20);
+    } else if (viewPreset === 'top') {
+      camera.position.set(0, 60, 0.01);
+      camera.lookAt(0, 0, 0);
+    }
+  }, [viewPreset]);
+
+  // Heavy WebGL scene init — only keyed on geographic/sun parameters
   useEffect(() => {
     const container = containerRef.current;
     const canvas = canvasRef.current;
     if (!container || !canvas) return;
 
-    // Check WebGL availability
     let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({
@@ -62,39 +88,34 @@ export const LunarSurface3D: React.FC<LunarSurface3DProps> = ({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-    // Scene & Camera
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.5, 500);
+    cameraRef.current = camera;
 
-    // Apply view preset camera positions
-    const applyCameraPreset = (preset: ViewPreset) => {
-      if (preset === 'orbit') {
-        camera.position.set(0, 35, 45);
-        camera.lookAt(0, 0, 0);
-      } else if (preset === 'ridge') {
-        camera.position.set(0, 4, 25);
-        camera.lookAt(0, 8, -20);
-      } else if (preset === 'top') {
-        camera.position.set(0, 60, 0.01);
-        camera.lookAt(0, 0, 0);
-      }
-    };
-    applyCameraPreset(viewPreset);
+    // Apply current preset at mount time via ref (no extra effect run needed)
+    if (viewPresetRef.current === 'ridge') {
+      camera.position.set(0, 4, 25);
+      camera.lookAt(0, 8, -20);
+    } else if (viewPresetRef.current === 'top') {
+      camera.position.set(0, 60, 0.01);
+      camera.lookAt(0, 0, 0);
+    } else {
+      camera.position.set(0, 35, 45);
+      camera.lookAt(0, 0, 0);
+    }
 
-    // Ambient Earthshine & Cosmic Light
     const ambientLight = new THREE.AmbientLight(0x223344, 0.4);
     scene.add(ambientLight);
 
-    // Sun Directional Light
     const sunRad = (sunAzimuthDeg * Math.PI) / 180;
     const sunElevRad = (sunElevationDeg * Math.PI) / 180;
     const sunDist = 80;
-    const sunX = Math.sin(sunRad) * Math.cos(sunElevRad) * sunDist;
-    const sunY = Math.max(Math.sin(sunElevRad) * sunDist, 2.5);
-    const sunZ = Math.cos(sunRad) * Math.cos(sunElevRad) * sunDist;
-
     const sunLight = new THREE.DirectionalLight(0xfff3e0, 2.2);
-    sunLight.position.set(sunX, sunY, sunZ);
+    sunLight.position.set(
+      Math.sin(sunRad) * Math.cos(sunElevRad) * sunDist,
+      Math.max(Math.sin(sunElevRad) * sunDist, 2.5),
+      Math.cos(sunRad) * Math.cos(sunElevRad) * sunDist
+    );
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 1024;
     sunLight.shadow.mapSize.height = 1024;
@@ -108,7 +129,6 @@ export const LunarSurface3D: React.FC<LunarSurface3DProps> = ({
     sunLight.shadow.bias = -0.0005;
     scene.add(sunLight);
 
-    // Build 3D Displaced Terrain Mesh
     const gridRes = 48;
     const terrainSize = 60;
     const geometry = new THREE.PlaneGeometry(terrainSize, terrainSize, gridRes, gridRes);
@@ -118,11 +138,9 @@ export const LunarSurface3D: React.FC<LunarSurface3DProps> = ({
     for (let i = 0; i < posAttr.count; i++) {
       const x = posAttr.getX(i);
       const z = posAttr.getZ(i);
-      // Map local coordinates [-30..30] to lat/lon offsets around target
       const offsetLat = latDeg + (z / 30) * 0.15;
       const offsetLon = lonDeg + (x / 30) * 0.15;
       const elevM = terrain.elevationAt(offsetLat, offsetLon);
-      // Height scale: meters -> units
       posAttr.setY(i, (elevM / 1000 + 2.5) * 4);
     }
     geometry.computeVertexNormals();
@@ -131,7 +149,6 @@ export const LunarSurface3D: React.FC<LunarSurface3DProps> = ({
       color: 0x8892a0,
       roughness: 0.85,
       metalness: 0.1,
-      flatShading: false,
     });
 
     const terrainMesh = new THREE.Mesh(geometry, material);
@@ -139,7 +156,6 @@ export const LunarSurface3D: React.FC<LunarSurface3DProps> = ({
     terrainMesh.castShadow = true;
     scene.add(terrainMesh);
 
-    // Central Relay Mast Marker
     const mastGeom = new THREE.CylinderGeometry(0.3, 0.4, 5, 12);
     const mastMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.8, roughness: 0.2 });
     const mastMesh = new THREE.Mesh(mastGeom, mastMat);
@@ -147,12 +163,10 @@ export const LunarSurface3D: React.FC<LunarSurface3DProps> = ({
     mastMesh.castShadow = true;
     scene.add(mastMesh);
 
-    // Mast Beacon Glow
     const beaconLight = new THREE.PointLight(0x60a5fa, 1.5, 20);
     beaconLight.position.set(0, 15, 0);
     scene.add(beaconLight);
 
-    // Trajectory Waypoint Ribbon
     const pathCurve = new THREE.CatmullRomCurve3([
       new THREE.Vector3(-18, 6, -15),
       new THREE.Vector3(-8, 8, -5),
@@ -165,11 +179,11 @@ export const LunarSurface3D: React.FC<LunarSurface3DProps> = ({
     const pathMesh = new THREE.Mesh(pathGeom, pathMat);
     scene.add(pathMesh);
 
-    // Animation Loop
+    // animate() reads refs directly — viewPreset/isRotating changes never trigger re-init
     let animId: number;
     const animate = () => {
       animId = requestAnimationFrame(animate);
-      if (isRotating && viewPreset === 'orbit') {
+      if (isRotatingRef.current && viewPresetRef.current === 'orbit') {
         terrainMesh.rotation.y += 0.003;
         mastMesh.rotation.y += 0.003;
         pathMesh.rotation.y += 0.003;
@@ -178,7 +192,6 @@ export const LunarSurface3D: React.FC<LunarSurface3DProps> = ({
     };
     animate();
 
-    // Resize Observer
     const resizeObserver = new ResizeObserver(() => {
       if (!container) return;
       const newWidth = container.clientWidth;
@@ -191,6 +204,7 @@ export const LunarSurface3D: React.FC<LunarSurface3DProps> = ({
     return () => {
       cancelAnimationFrame(animId);
       resizeObserver.disconnect();
+      cameraRef.current = null;
       renderer.dispose();
       geometry.dispose();
       material.dispose();
@@ -199,7 +213,7 @@ export const LunarSurface3D: React.FC<LunarSurface3DProps> = ({
       pathGeom.dispose();
       pathMat.dispose();
     };
-  }, [latDeg, lonDeg, sunElevationDeg, sunAzimuthDeg, viewPreset, isRotating, terrain]);
+  }, [latDeg, lonDeg, sunElevationDeg, sunAzimuthDeg, terrain]); // viewPreset/isRotating NOT in deps
 
   return (
     <Card
@@ -208,7 +222,6 @@ export const LunarSurface3D: React.FC<LunarSurface3DProps> = ({
       aria-label="Interactive 3D WebGL Lunar Surface and Sun Shadowing"
       className={`relative overflow-hidden border border-[var(--color-border-subtle)] bg-[var(--color-bg-surface)] ${className}`}
     >
-      {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-border-subtle)] pb-3">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
@@ -230,7 +243,6 @@ export const LunarSurface3D: React.FC<LunarSurface3DProps> = ({
         </div>
       </div>
 
-      {/* 3D Canvas Viewport */}
       <div
         ref={containerRef}
         className="relative my-3 w-full h-[320px] rounded-xl bg-black/60 border border-[var(--color-border-subtle)] overflow-hidden flex items-center justify-center"
@@ -245,7 +257,6 @@ export const LunarSurface3D: React.FC<LunarSurface3DProps> = ({
           </div>
         )}
 
-        {/* Viewport Overlay Controls */}
         <div className="absolute top-2 right-2 flex items-center gap-1.5 z-10 bg-black/40 backdrop-blur-md p-1 rounded-lg border border-white/10">
           <Button
             size="sm"
@@ -279,7 +290,6 @@ export const LunarSurface3D: React.FC<LunarSurface3DProps> = ({
           />
         </div>
 
-        {/* Sun Vector Indicator */}
         <div className="absolute bottom-2 left-2 flex items-center gap-2 bg-black/60 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-white/10 text-3xs font-mono text-slate-300">
           <Sun className="w-3.5 h-3.5 text-amber-400" />
           <span>Solar Azimuth: {sunAzimuthDeg}°</span>

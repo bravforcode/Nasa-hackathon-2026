@@ -6,6 +6,7 @@
 import React from 'react';
 import { Sparkles, CheckCircle2, Plus } from 'lucide-react';
 import { Modal, Button, StatusPill } from './ui';
+import { globalCapcomAudio } from '../services/audio/capcom';
 
 interface DesignAssistModalProps {
   isOpen: boolean;
@@ -58,6 +59,7 @@ export const DesignAssistModal: React.FC<DesignAssistModalProps> = ({
             leftIcon={isMitigationActive ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <Plus className="w-4 h-4" />}
             onClick={() => {
               onDeployMitigation();
+              globalCapcomAudio.speak(`Shackleton Apex relay deployed. Network coverage augmented by ${coverageDelta} percent.`, 'REPLAN');
               onClose();
             }}
             className={isMitigationActive ? 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10' : ''}

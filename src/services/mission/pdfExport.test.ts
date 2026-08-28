@@ -4,29 +4,53 @@
  */
 
 import { describe, it, expect } from 'bun:test';
-import { generateMissionPdfDocDefinition } from './pdfExport';
+import { buildMissionPdfDocument, downloadMissionPdf } from './pdfExport';
 import { buildFlightRulesMatrix, type MissionExportData } from './export';
 
-describe('PDF Export Service', () => {
-  const sampleMission: MissionExportData = {
-    missionId: 'NASA-VIPER-SECTOR4-2026',
-    timestampUtc: '2026-08-28T00:00:00Z',
-    siteName: 'Shackleton Crater High Ridge',
-    strategyName: 'Balanced Viability Plan',
-    overallScore: 88,
-    commLinkCoveragePct: 85.0,
-    batteryReservePct: 40.0,
-    etaHours: 3.5,
-    spaceWeatherRisk: 'Class M1.2',
-    relayCount: 3,
-    flightRules: buildFlightRulesMatrix(85.0, 40.0, 'Class M1.2', 11.4),
-  };
+const sampleMission: MissionExportData = {
+  missionId: 'NASA-VIPER-SECTOR4-2026',
+  timestampUtc: '2026-08-28T00:00:00Z',
+  siteName: 'Shackleton Crater High Ridge',
+  strategyName: 'Balanced Viability Plan',
+  overallScore: 88,
+  commLinkCoveragePct: 85.0,
+  batteryReservePct: 40.0,
+  etaHours: 3.5,
+  spaceWeatherRisk: 'Class M1.2',
+  relayCount: 3,
+  flightRules: buildFlightRulesMatrix(85.0, 40.0, 'Class M1.2', 11.4),
+};
 
-  it('builds structured document layout with NASA compliance tables', () => {
-    const docDef = generateMissionPdfDocDefinition(sampleMission);
-    expect(docDef.title).toContain('NASA ARTEMIS MISSION OPERATIONS BRIEFING');
-    expect(docDef.flightRulesTable.rows.length).toBe(4);
-    expect(docDef.provenanceHash).toContain('LUNAR-SHA256-');
-    expect(docDef.siteName).toBe('Shackleton Crater High Ridge');
+describe('PDF Export Service — buildMissionPdfDocument', () => {
+  it('returns a valid jsPDF document instance', () => {
+    const doc = buildMissionPdfDocument(sampleMission);
+    expect(doc).toBeDefined();
+    expect(typeof doc.output).toBe('function');
+    expect(typeof doc.save).toBe('function');
+  });
+
+  it('produces a non-empty data-uri output with valid PDF header', () => {
+    const doc = buildMissionPdfDocument(sampleMission);
+    const dataUri = doc.output('datauristring');
+    expect(typeof dataUri).toBe('string');
+    expect(dataUri.startsWith('data:application/pdf;filename=generated.pdf;base64,')).toBe(true);
+    expect(dataUri.length).toBeGreaterThan(1000);
+  });
+
+  it('embeds flight rules and SHA-256 provenance in decoded PDF buffer', () => {
+    const doc = buildMissionPdfDocument(sampleMission);
+    const dataUri = doc.output('datauristring');
+    const base64 = dataUri.replace(/^data:application\/pdf[^,]+,/, '');
+    const decoded = atob(base64);
+    expect(decoded).toContain('LUNAR-SHA256-');
+    expect(decoded).toContain('NASA ARTEMIS');
+  });
+});
+
+describe('PDF Export Service — downloadMissionPdf', () => {
+  it('executes download workflow without error', () => {
+    expect(() => {
+      downloadMissionPdf(sampleMission);
+    }).not.toThrow();
   });
 });

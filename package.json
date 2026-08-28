@@ -12,6 +12,7 @@
     "test": "bun test --timeout 15000"
   },
   "dependencies": {
+    "@adobe/css-tools": "^4.5.0",
     "@google/genai": "^2.4.0",
     "@tailwindcss/vite": "^4.1.14",
     "@types/canvas-confetti": "^1.9.0",
@@ -31,6 +32,7 @@
     "vite": "^6.2.3"
   },
   "devDependencies": {
+    "@babel/runtime": "^8.0.0",
     "@happy-dom/global-registrator": "^20.11.6",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",

@@ -7,41 +7,6 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { type MissionExportData, generateProvenanceHash } from './export';
 
-export interface MissionPdfDocDefinition {
-  title: string;
-  missionId: string;
-  siteName: string;
-  strategyName: string;
-  provenanceHash: string;
-  flightRulesTable: {
-    headers: string[];
-    rows: Array<[string, string, string, string, string]>;
-  };
-}
-
-export function generateMissionPdfDocDefinition(data: MissionExportData): MissionPdfDocDefinition {
-  const hash = generateProvenanceHash(data);
-  const rows = data.flightRules.map((r) => [
-    r.id,
-    r.category,
-    r.threshold,
-    r.actualValue,
-    r.status,
-  ] as [string, string, string, string, string]);
-
-  return {
-    title: 'NASA ARTEMIS MISSION OPERATIONS BRIEFING // FLIGHT DIRECTIVE',
-    missionId: data.missionId,
-    siteName: data.siteName,
-    strategyName: data.strategyName,
-    provenanceHash: hash,
-    flightRulesTable: {
-      headers: ['Rule ID', 'Category', 'Threshold', 'Actual Telemetry', 'Compliance'],
-      rows,
-    },
-  };
-}
-
 /**
  * Builds a publication-ready NASA Flight Directive PDF document.
  */
@@ -126,6 +91,7 @@ export function buildMissionPdfDocument(data: MissionExportData): jsPDF {
 
   autoTable(doc, {
     startY: currentY + 5,
+    margin: { left: 14, right: 14 },
     head: [['Rule ID', 'Category', 'Threshold', 'Actual Telemetry', 'Status']],
     body: tableRows,
     theme: 'grid',
@@ -140,11 +106,8 @@ export function buildMissionPdfDocument(data: MissionExportData): jsPDF {
       textColor: [30, 41, 59],
     },
     columnStyles: {
-      0: { cellWidth: 32, fontStyle: 'bold' },
-      1: { cellWidth: 26 },
-      2: { cellWidth: 48 },
-      3: { cellWidth: 46 },
-      4: { cellWidth: 30, halign: 'center', fontStyle: 'bold' },
+      0: { fontStyle: 'bold' },
+      4: { halign: 'center', fontStyle: 'bold' },
     },
     didParseCell: (dataCell) => {
       if (dataCell.section === 'body' && dataCell.column.index === 4) {

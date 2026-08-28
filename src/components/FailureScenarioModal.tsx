@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { FailureScenarioType } from '../types';
 import { Modal, Button, StatusPill } from './ui';
+import { globalCapcomAudio } from '../services/audio/capcom';
 
 interface FailureScenarioModalProps {
   isOpen: boolean;
@@ -27,6 +28,20 @@ export const FailureScenarioModal: React.FC<FailureScenarioModalProps> = ({
   activeScenario,
   onSelectScenario,
 }) => {
+  const triggerScenario = (scenario: FailureScenarioType) => {
+    onSelectScenario(scenario);
+    if (scenario === 'relay_failure') {
+      globalCapcomAudio.speak('Relay failure detected on secondary node. Comms dead zone warning active.', 'ALERT');
+    } else if (scenario === 'power_loss') {
+      globalCapcomAudio.speak('Base EPS power degradation detected. Excursion energy limits engaged.', 'ALERT');
+    } else if (scenario === 'comms_blackout') {
+      globalCapcomAudio.speak('Loss of direct Earth DSN link. Switching to autonomous lunar surface mesh.', 'ALERT');
+    } else if (scenario === 'space_weather') {
+      globalCapcomAudio.speak('High-energy solar particle event detected. Ka-band orbital crosslinks degraded.', 'ALERT');
+    } else if (scenario === 'nominal') {
+      globalCapcomAudio.speak('All systems restored to nominal baseline. Constellation coverage at 91 percent.', 'STATUS');
+    }
+  };
   const scenarios: {
     id: FailureScenarioType;
     title: string;
@@ -82,7 +97,7 @@ export const FailureScenarioModal: React.FC<FailureScenarioModalProps> = ({
             variant={activeScenario === 'nominal' ? 'primary' : 'secondary'}
             size="sm"
             onClick={() => {
-              onSelectScenario('nominal');
+              triggerScenario('nominal');
               onClose();
             }}
           >
@@ -101,13 +116,13 @@ export const FailureScenarioModal: React.FC<FailureScenarioModalProps> = ({
               tabIndex={0}
               aria-pressed={isSelected}
               onClick={() => {
-                onSelectScenario(sc.id);
+                triggerScenario(sc.id);
                 onClose();
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  onSelectScenario(sc.id);
+                  triggerScenario(sc.id);
                   onClose();
                 }
               }}
