@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect, afterAll } from 'bun:test';
+import fs from 'fs';
 import { buildMissionPdfDocument, downloadMissionPdf } from './pdfExport';
 import { buildFlightRulesMatrix, type MissionExportData } from './export';
 
@@ -48,7 +49,20 @@ describe('PDF Export Service — buildMissionPdfDocument', () => {
 });
 
 describe('PDF Export Service — downloadMissionPdf', () => {
-  it('executes download workflow without error', () => {
+  const generatedPdfPath = `NASA-FLIGHT-DIRECTIVE-${sampleMission.missionId}.pdf`;
+
+  afterAll(() => {
+    // Clean up any test artifact created by Node/Bun jsPDF save fallback
+    if (fs.existsSync(generatedPdfPath)) {
+      try {
+        fs.unlinkSync(generatedPdfPath);
+      } catch {
+        // ignore
+      }
+    }
+  });
+
+  it('executes download workflow without error and cleans up', () => {
     expect(() => {
       downloadMissionPdf(sampleMission);
     }).not.toThrow();
