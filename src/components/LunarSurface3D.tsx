@@ -5,7 +5,7 @@
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import * as THREE from 'three';
-import { Card, StatusPill, IconButton, Button } from './ui';
+import { StatusPill, IconButton, Button } from './ui';
 import { SyntheticPolarTerrain } from '../utils/terrain';
 import { Eye, Sun, RotateCw, Compass } from 'lucide-react';
 
@@ -216,36 +216,35 @@ export const LunarSurface3D: React.FC<LunarSurface3DProps> = ({
   }, [latDeg, lonDeg, sunElevationDeg, sunAzimuthDeg, terrain]); // viewPreset/isRotating NOT in deps
 
   return (
-    <Card
-      as="section"
-      variant="default"
+    <div
+      role="region"
       aria-label="Interactive 3D WebGL Lunar Surface and Sun Shadowing"
-      className={`relative overflow-hidden border border-[var(--color-border-subtle)] bg-[var(--color-bg-surface)] ${className}`}
+      className={`relative w-full h-full flex flex-col overflow-hidden bg-slate-950/80 backdrop-blur-2xl ${className}`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-border-subtle)] pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 border-b border-white/[0.08] bg-slate-950/60 shrink-0">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/15 border border-blue-400/30 text-blue-400">
             <Compass className="h-4 w-4" aria-hidden="true" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-[var(--color-text)] tracking-tight">
-              Interactive 3D WebGL Lunar Surface
+            <h3 className="text-xs font-headline font-bold text-white tracking-tight">
+              Interactive 3D WebGL Lunar Surface · Digital Twin
             </h3>
-            <p className="text-3xs text-[var(--color-text-muted)] font-mono">
-              {siteName} ({latDeg.toFixed(2)}°S, {lonDeg.toFixed(2)}°E) · Dynamic Sun Shadows
+            <p className="text-3xs text-slate-400 font-mono">
+              {siteName} ({latDeg.toFixed(2)}°S, {lonDeg.toFixed(2)}°E) · Dynamic LOLA Shadow Ray-Casting
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <StatusPill tone="success">WebGL 3D ACCELERATED</StatusPill>
-          <StatusPill tone="accent">SUN: {sunElevationDeg.toFixed(1)}° ELEV</StatusPill>
+          <StatusPill tone="success" className="py-0.5 px-2 text-3xs rounded-full">3D ACCELERATED</StatusPill>
+          <StatusPill tone="accent" className="py-0.5 px-2 text-3xs rounded-full">SUN: {sunElevationDeg.toFixed(1)}° ELEV</StatusPill>
         </div>
       </div>
 
       <div
         ref={containerRef}
-        className="relative my-3 w-full h-[320px] rounded-xl bg-black/60 border border-[var(--color-border-subtle)] overflow-hidden flex items-center justify-center"
+        className="relative flex-1 w-full min-h-[260px] overflow-hidden flex items-center justify-center bg-[#020409]"
       >
         <canvas ref={canvasRef} className="w-full h-full block cursor-grab active:cursor-grabbing select-none" />
 
@@ -297,6 +296,6 @@ export const LunarSurface3D: React.FC<LunarSurface3DProps> = ({
           <span>Elevation: {sunElevationDeg}°</span>
         </div>
       </div>
-    </Card>
+    </div>
   );
 };

@@ -47,6 +47,8 @@ import { HabitatModal } from './components/HabitatModal';
 import { ScienceGoalsModal } from './components/ScienceGoalsModal';
 import { ConstraintsModal } from './components/ConstraintsModal';
 import { ComponentLibraryView } from './components/ComponentLibraryView';
+import { Globe, Map } from 'lucide-react';
+import { LunarSurface3D } from './components/LunarSurface3D';
 import { IlluminationTimeline } from './components/IlluminationTimeline';
 
 export type SepSeverity = { level: SepSeverityLevel; multiplier: number };
@@ -55,6 +57,7 @@ export type CmrInfo = { count: number; titles: string[]; fetchedAt: string } | {
 function AppContent() {
   // Navigation
   const [activeTab, setActiveTab] = useState<NavigationTab>('region');
+  const [viewportMode, setViewportMode] = useState<'2d' | '3d'>('2d');
 
   // Saved session (validated by utils/persist — malformed payloads are discarded)
   const saved = useMemo(loadSavedState, []);
@@ -378,22 +381,63 @@ function AppContent() {
               />
             </div>
 
-            {/* Central Area: Lunar Topographic Map — Double-Bezel Aerospace Frame */}
-            <div className="flex-1 ring-1 ring-white/10 p-1 rounded-2xl bg-white/[0.02] shadow-2xl relative min-h-[320px] md:min-h-[280px]">
+            {/* Central Area: Lunar Topographic & 3D WebGL Surface — Double-Bezel Aerospace Frame */}
+            <div className="flex-1 ring-1 ring-white/10 p-1 rounded-2xl bg-white/[0.02] shadow-2xl relative min-h-[340px] md:min-h-[290px]">
               <div className="w-full h-full rounded-xl overflow-hidden border border-white/[0.06] shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] bg-slate-950/80 backdrop-blur-2xl relative">
-                <LunarMap
-                  relays={currentRelays}
-                  scienceSites={scienceSites}
-                  deadZones={deadZones}
-                  activePlan={selectedPlanId}
-                  activeScenario={activeScenario}
-                  isMitigationActive={isMitigationActive}
-                  region={selectedRegion}
-                  onMoveRelay={handleMoveRelay}
-                  onMoveDeadZone={handleMoveDeadZone}
-                  onDeployMitigationRelay={() => setIsMitigationActive(true)}
-                  onSelectRelay={() => setIsDesignAssistOpen(true)}
-                />
+                {/* Floating Viewport Mode Selector (3D Digital Twin vs 2D Tactical Network) */}
+                <div className="absolute top-3 right-3 z-30 flex items-center bg-slate-950/85 p-1 rounded-full border border-white/10 backdrop-blur-xl shadow-2xl">
+                  <button
+                    type="button"
+                    onClick={() => setViewportMode('3d')}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-mono text-3xs font-bold transition-all ${
+                      viewportMode === '3d'
+                        ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.8)] border border-blue-400/40'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Globe className={`w-3.5 h-3.5 ${viewportMode === '3d' ? 'text-cyan-300 animate-pulse' : ''}`} />
+                    <span>3D DIGITAL TWIN</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewportMode('2d')}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-mono text-3xs font-bold transition-all ${
+                      viewportMode === '2d'
+                        ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.8)] border border-blue-400/40'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Map className="w-3.5 h-3.5" />
+                    <span>2D TACTICAL GRID</span>
+                  </button>
+                </div>
+
+                {viewportMode === '3d' ? (
+                  <div className="w-full h-full relative">
+                    <LunarSurface3D
+                      latDeg={parseFloat(selectedRegion.centerLat) || -89.9}
+                      lonDeg={parseFloat(selectedRegion.centerLon) || 0.0}
+                      siteName={selectedRegion.name}
+                      sunElevationDeg={1.5}
+                      sunAzimuthDeg={135}
+                      className="w-full h-full !rounded-none !border-none !my-0 !p-0"
+                    />
+                  </div>
+                ) : (
+                  <LunarMap
+                    relays={currentRelays}
+                    scienceSites={scienceSites}
+                    deadZones={deadZones}
+                    activePlan={selectedPlanId}
+                    activeScenario={activeScenario}
+                    isMitigationActive={isMitigationActive}
+                    region={selectedRegion}
+                    onMoveRelay={handleMoveRelay}
+                    onMoveDeadZone={handleMoveDeadZone}
+                    onDeployMitigationRelay={() => setIsMitigationActive(true)}
+                    onSelectRelay={() => setIsDesignAssistOpen(true)}
+                  />
+                )}
               </div>
             </div>
 

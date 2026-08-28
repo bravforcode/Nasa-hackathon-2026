@@ -327,6 +327,32 @@ export const LunarMap: React.FC<LunarMapProps> = ({
               </linearGradient>
             </defs>
 
+            {/* Tactical Polar Range Rings & Azimuth Radials (NASA Aerospace HUD) */}
+            <g className="pointer-events-none select-none opacity-40">
+              {/* Range Rings from South Pole Anchor */}
+              <circle cx="500" cy="400" r="100" fill="none" stroke="var(--color-accent, #3b82f6)" strokeWidth="0.75" strokeDasharray="3 3" />
+              <circle cx="500" cy="400" r="200" fill="none" stroke="var(--color-accent, #3b82f6)" strokeWidth="0.75" strokeDasharray="4 4" />
+              <circle cx="500" cy="400" r="300" fill="none" stroke="var(--color-accent, #3b82f6)" strokeWidth="0.75" strokeDasharray="5 5" />
+              <circle cx="500" cy="400" r="380" fill="none" stroke="var(--color-accent, #3b82f6)" strokeWidth="1" />
+
+              {/* Azimuth Axis Lines */}
+              <line x1="500" y1="20" x2="500" y2="780" stroke="var(--color-accent, #3b82f6)" strokeWidth="0.75" strokeDasharray="2 4" />
+              <line x1="120" y1="400" x2="880" y2="400" stroke="var(--color-accent, #3b82f6)" strokeWidth="0.75" strokeDasharray="2 4" />
+              <line x1="232" y1="132" x2="768" y2="668" stroke="var(--color-accent, #3b82f6)" strokeWidth="0.5" strokeDasharray="2 6" />
+              <line x1="768" y1="132" x2="232" y2="668" stroke="var(--color-accent, #3b82f6)" strokeWidth="0.5" strokeDasharray="2 6" />
+
+              {/* Polar Compass Labels */}
+              <text x="504" y="36" fill="#93c5fd" fontSize="9" fontFamily="JetBrains Mono" fontWeight="700">000° PRIME</text>
+              <text x="840" y="396" fill="#93c5fd" fontSize="9" fontFamily="JetBrains Mono" fontWeight="700">090° E</text>
+              <text x="504" y="772" fill="#93c5fd" fontSize="9" fontFamily="JetBrains Mono" fontWeight="700">180° OPP</text>
+              <text x="130" y="396" fill="#93c5fd" fontSize="9" fontFamily="JetBrains Mono" fontWeight="700">270° W</text>
+
+              {/* Range Ring Labels */}
+              <text x="505" y="305" fill="#60a5fa" fontSize="8" fontFamily="JetBrains Mono">10 KM</text>
+              <text x="505" y="205" fill="#60a5fa" fontSize="8" fontFamily="JetBrains Mono">20 KM</text>
+              <text x="505" y="105" fill="#60a5fa" fontSize="8" fontFamily="JetBrains Mono">30 KM</text>
+            </g>
+
             {/* Topographic Contours (decorative) */}
             {showContours && (
               <g className="stroke-[var(--color-map-terrain-line,#424753)]/40 stroke-[0.75] fill-none" opacity="0.5">
@@ -479,7 +505,7 @@ export const LunarMap: React.FC<LunarMapProps> = ({
               return null;
             })()}
 
-            {/* Science Sites — projected from their real lat/lon */}
+            {/* Science Sites — projected from their real lat/lon with HUD pill badges */}
             {scienceSites.map((site) => {
               const sp = project(site.lat, site.lon);
               const isCompleted = site.status === 'completed';
@@ -489,7 +515,7 @@ export const LunarMap: React.FC<LunarMapProps> = ({
               return (
                 <g
                   key={site.id}
-                  className="cursor-pointer"
+                  className="cursor-pointer group"
                   onMouseEnter={() => { setHoveredLabel(`SITE ${site.code}`); setHoveredRelay(null); }}
                   onMouseLeave={() => setHoveredLabel(null)}
                 >
@@ -501,14 +527,17 @@ export const LunarMap: React.FC<LunarMapProps> = ({
                     stroke="#ffffff"
                     strokeWidth="1.5"
                   />
-                  <text x={sp.x + 10} y={sp.y + 4} fill="#dee2f6" fontSize="9" fontFamily="JetBrains Mono" fontWeight="600">
-                    {site.code} {isCompleted ? '[COMPLETE]' : isAtRisk ? '[AT RISK]' : ''}
-                  </text>
+                  <g transform={`translate(${sp.x + 10}, ${sp.y - 8})`}>
+                    <rect x="0" y="0" width={isCompleted ? 82 : isAtRisk ? 72 : 44} height="16" rx="4" fill="#080d1a" stroke="rgba(255,255,255,0.15)" strokeWidth="0.75" />
+                    <text x="5" y="11" fill={isCompleted ? 'var(--color-map-safety, #00FF94)' : isAtRisk ? 'var(--color-map-danger, #FF4C4C)' : '#dee2f6'} fontSize="9" fontFamily="JetBrains Mono" fontWeight="700">
+                      {site.code} {isCompleted ? 'COMPLETE' : isAtRisk ? 'AT RISK' : ''}
+                    </text>
+                  </g>
                 </g>
               );
             })}
 
-            {/* Relay Tower Nodes — projected from live lat/lon, DRAGGABLE */}
+            {/* Relay Tower Nodes — projected from live lat/lon, DRAGGABLE with HUD pill badges */}
             {relays.map((relay) => {
               if (relay.isCandidate && !isMitigationActive) return null;
               const p = nodePos[relay.id];
@@ -517,7 +546,7 @@ export const LunarMap: React.FC<LunarMapProps> = ({
               const isApex = relay.isCandidate === true;
               const color = isOffline ? 'var(--color-map-danger, #FF4C4C)' : isApex ? 'var(--color-map-safety, #00FF94)' : 'var(--color-map-balanced, #4C8DFF)';
               const label = isOffline
-                ? `${relay.code} [ERR: OFFLINE]`
+                ? `${relay.code} [OFFLINE]`
                 : isApex
                   ? 'R-APEX (ACTIVE)'
                   : `${relay.code}`;
@@ -529,8 +558,6 @@ export const LunarMap: React.FC<LunarMapProps> = ({
                   className={onMoveRelay && !isApex ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}
                   style={{ touchAction: 'none' }}
                   onPointerDown={(e) => {
-                    // Apex is intentionally NOT draggable: it is a candidate
-                    // asset at a surveyed site; only deployed fleet nodes move.
                     if (onMoveRelay && !isApex) {
                       e.currentTarget.setPointerCapture?.(e.pointerId);
                       setDragId(relay.id);
@@ -547,11 +574,16 @@ export const LunarMap: React.FC<LunarMapProps> = ({
                     <circle cx="0" cy="0" r="14" fill="none" stroke={color} strokeWidth="1" strokeDasharray="3 2" opacity="0.6" />
                   )}
                   <circle cx="0" cy="0" r={isApex ? 7 : 5} fill={isOffline ? '#303444' : color} stroke={isOffline ? 'var(--color-map-danger, #FF4C4C)' : 'none'} strokeWidth={isOffline ? 2 : 0} />
-                  <text x="12" y="4" fill={color} fontSize="10" fontFamily="JetBrains Mono" fontWeight="700">
-                    {label}
-                  </text>
+                  
+                  <g transform="translate(10, -10)">
+                    <rect x="0" y="0" width={isOffline ? 96 : isApex ? 104 : 64} height="18" rx="4" fill="#080d1a" stroke={color} strokeWidth="1" />
+                    <text x="6" y="12" fill={color} fontSize="9" fontFamily="JetBrains Mono" fontWeight="700">
+                      {label}
+                    </text>
+                  </g>
+
                   {dragId === relay.id && (
-                    <text x="12" y="-10" fill="#94a3b8" fontSize="8" fontFamily="JetBrains Mono">
+                    <text x="12" y="-18" fill="#94a3b8" fontSize="8" fontFamily="JetBrains Mono">
                       DRAGGING — coverage recomputes live
                     </text>
                   )}
@@ -559,37 +591,45 @@ export const LunarMap: React.FC<LunarMapProps> = ({
               );
             })}
 
-            {/* Candidate ghost button when Apex not deployed (decorative position) */}
-            {!isMitigationActive && (
-              <g
-                transform="translate(500, 400)"
-                className="cursor-pointer group"
-                onClick={onDeployMitigationRelay}
-                onMouseEnter={() => setHoveredLabel('+ DEPLOY APEX RELAY')}
-                onMouseLeave={() => setHoveredLabel(null)}
-              >
-                <circle cx="0" cy="0" r="12" fill="#0e1321" stroke="var(--color-map-cursor, #5de6ff)" strokeWidth="1.5" strokeDasharray="3 3" />
-                <circle cx="0" cy="0" r="3" fill="var(--color-map-cursor, #5de6ff)" />
-                <text x="14" y="2" fill="var(--color-map-cursor, #5de6ff)" fontSize="9" fontFamily="JetBrains Mono" fontWeight="700">
-                  + DEPLOY APEX RELAY
+            {/* Candidate ghost button when Apex not deployed (surveyed at Shackleton Peak Apex) */}
+            {!isMitigationActive && (() => {
+              const apexPos = pos('relay_shackleton_apex', { x: 580, y: 460 });
+              return (
+                <g
+                  transform={`translate(${apexPos.x}, ${apexPos.y})`}
+                  className="cursor-pointer group"
+                  onClick={onDeployMitigationRelay}
+                  onMouseEnter={() => setHoveredLabel('+ DEPLOY APEX RELAY')}
+                  onMouseLeave={() => setHoveredLabel(null)}
+                >
+                  <circle cx="0" cy="0" r="14" fill="#0e1321" stroke="var(--color-map-cursor, #5de6ff)" strokeWidth="1.5" strokeDasharray="3 3" className="animate-pulse" />
+                  <circle cx="0" cy="0" r="4" fill="var(--color-map-cursor, #5de6ff)" />
+                  <g transform="translate(16, -10)">
+                    <rect x="0" y="0" width="132" height="28" rx="6" fill="#070c18" stroke="var(--color-map-cursor, #5de6ff)" strokeWidth="1" />
+                    <text x="8" y="12" fill="var(--color-map-cursor, #5de6ff)" fontSize="9" fontFamily="JetBrains Mono" fontWeight="800">
+                      + DEPLOY APEX RELAY
+                    </text>
+                    <text x="8" y="22" fill="#8c909f" fontSize="7" fontFamily="JetBrains Mono">
+                      (CLOSES DEAD ZONE 2)
+                    </text>
+                  </g>
+                </g>
+              );
+            })()}
+
+            {/* Base Alpha Habitat Marker — projected, non-interactive */}
+            <g transform={`translate(${baseAlpha.x}, ${baseAlpha.y})`} style={{ pointerEvents: 'none' }}>
+              <rect x="-12" y="-12" width="24" height="24" fill="#0e1321" stroke="var(--color-map-balanced, #4C8DFF)" strokeWidth="2" rx="4" />
+              <rect x="-6" y="-6" width="12" height="12" fill="var(--color-map-balanced, #4C8DFF)" rx="2" />
+              <g transform="translate(16, -14)">
+                <rect x="0" y="0" width="138" height="28" rx="6" fill="#080d1a" stroke="var(--color-map-balanced, #4C8DFF)" strokeWidth="1" />
+                <text x="8" y="12" fill="#ffffff" fontSize="9" fontFamily="JetBrains Mono" fontWeight="800">
+                  {baseAlpha.name}
                 </text>
-                <text x="14" y="14" fill="#8c909f" fontSize="7" fontFamily="JetBrains Mono">
-                  (CLOSES DEAD ZONE 2)
+                <text x="8" y="22" fill="#8c909f" fontSize="7" fontFamily="JetBrains Mono">
+                  HABITAT SHELTER &amp; EPS
                 </text>
               </g>
-            )}
-
-            {/* Base Alpha Habitat Marker — projected, non-interactive so it
-                can never steal Relay Alpha's drag hit-area (review IMP3) */}
-            <g transform={`translate(${baseAlpha.x}, ${baseAlpha.y})`} style={{ pointerEvents: 'none' }}>
-              <rect x="-12" y="-12" width="24" height="24" fill="#0e1321" stroke="var(--color-map-balanced, #4C8DFF)" strokeWidth="2" rx="3" />
-              <rect x="-6" y="-6" width="12" height="12" fill="var(--color-map-balanced, #4C8DFF)" rx="2" />
-              <text x="18" y="26" fill="#ffffff" fontSize="11" fontFamily="JetBrains Mono" fontWeight="800">
-                {baseAlpha.name}
-              </text>
-              <text x="18" y="38" fill="#8c909f" fontSize="8" fontFamily="JetBrains Mono">
-                HABITAT SHELTER &amp; EPS
-              </text>
             </g>
 
             {/* VIPER Rover Marker — projected, non-interactive */}
@@ -597,12 +637,15 @@ export const LunarMap: React.FC<LunarMapProps> = ({
               <circle cx="0" cy="0" r="14" fill="none" stroke="var(--color-map-safety, #00FF94)" strokeWidth="1.5" className="motion-safe:animate-pulse" />
               <circle cx="0" cy="0" r="6" fill="var(--color-map-safety, #00FF94)" />
               <line x1="0" y1="0" x2="-18" y2="12" stroke="var(--color-map-safety, #00FF94)" strokeWidth="2" />
-              <text x="16" y="-2" fill="var(--color-map-safety, #00FF94)" fontSize="11" fontFamily="JetBrains Mono" fontWeight="800">
-                VIPER ROVER 01
-              </text>
-              <text x="16" y="10" fill="#8c909f" fontSize="8" fontFamily="JetBrains Mono">
-                DISTANCE TO HAB: {roverPos.distKm.toFixed(2)} KM
-              </text>
+              <g transform="translate(16, -14)">
+                <rect x="0" y="0" width="144" height="28" rx="6" fill="#080d1a" stroke="var(--color-map-safety, #00FF94)" strokeWidth="1" />
+                <text x="8" y="12" fill="var(--color-map-safety, #00FF94)" fontSize="9" fontFamily="JetBrains Mono" fontWeight="800">
+                  VIPER ROVER 01
+                </text>
+                <text x="8" y="22" fill="#8c909f" fontSize="7" fontFamily="JetBrains Mono">
+                  DIST TO HAB: {roverPos.distKm.toFixed(2)} KM
+                </text>
+              </g>
             </g>
           </svg>
         </div>
