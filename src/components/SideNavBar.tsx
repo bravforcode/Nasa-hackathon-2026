@@ -11,7 +11,8 @@ import {
   FlaskConical, 
   Sliders, 
   Layers, 
-  BatteryCharging 
+  BatteryCharging,
+  Zap
 } from 'lucide-react';
 import gsap from 'gsap';
 import { NavigationTab } from '../types';
@@ -78,15 +79,20 @@ export const SideNavBar: React.FC<SideNavBarProps> = ({
     <nav
       role="navigation"
       aria-label="Mission Configuration"
-      className="bg-white/5 backdrop-blur-xl w-64 border-r border-white/10 flex flex-col justify-between py-5 shrink-0 hidden md:flex h-full select-none"
+      className="bg-slate-950/70 backdrop-blur-2xl w-64 border-r border-white/[0.08] flex flex-col justify-between py-5 shrink-0 hidden md:flex h-full select-none shadow-[4px_0_30px_rgba(0,0,0,0.4)]"
     >
       <div>
-        {/* Header */}
+        {/* Header with high-tech badge */}
         <div className="px-5 mb-5">
-          <h2 className="font-headline font-bold text-sm text-white tracking-wider uppercase">
-            MISSION CONFIG
-          </h2>
-          <div className="font-mono text-3xs text-slate-400 uppercase tracking-widest mt-0.5">
+          <div className="flex items-center justify-between">
+            <h2 className="font-headline font-bold text-xs text-slate-200 tracking-widest uppercase">
+              Mission Config
+            </h2>
+            <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-[9px] font-bold">
+              ONLINE
+            </span>
+          </div>
+          <div className="font-mono text-3xs text-slate-400 uppercase tracking-widest mt-1">
             V1.0-STABLE · FLIGHT READY
           </div>
         </div>
@@ -106,38 +112,46 @@ export const SideNavBar: React.FC<SideNavBarProps> = ({
         </div>
       </div>
 
-      {/* Bottom Mini Telemetry Status: Rover Telemetry VIPER-1 */}
-      <div className="px-4 mx-3 p-4 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-xl flex flex-col gap-2.5 shadow-lg">
-        <div className="flex justify-between items-center text-3xs font-mono text-slate-400 uppercase tracking-wider">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            ROVER VIPER-01
-          </span>
-          <span className="text-emerald-400 font-bold">
-            ACTIVE
-          </span>
-        </div>
-        
-        <div className="flex items-center justify-between text-xs font-mono">
-          <span className="text-slate-300 flex items-center gap-1.5">
-            <BatteryCharging className="w-3.5 h-3.5 text-emerald-400" /> Battery Margin
-          </span>
-          <span className={`font-bold font-mono ${roverBatteryPercent >= 30 ? 'text-emerald-400' : 'text-red-400'}`}>
-            <AnimatedCounter value={roverBatteryPercent} suffix="%" />
-          </span>
-        </div>
+      {/* Bottom Double-Bezel Telemetry Status: Rover VIPER-1 */}
+      <div className="mx-3 ring-1 ring-white/10 bg-white/[0.03] p-1 rounded-2xl shadow-xl">
+        <div className="p-3.5 bg-gradient-to-b from-slate-900/90 to-slate-950/95 rounded-xl border border-white/[0.06] flex flex-col gap-2.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]">
+          <div className="flex justify-between items-center text-3xs font-mono text-slate-400 uppercase tracking-wider">
+            <span className="flex items-center gap-1.5 font-bold text-slate-200">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
+              ROVER VIPER-01
+            </span>
+            <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-bold text-[9px]">
+              ACTIVE
+            </span>
+          </div>
+          
+          <div className="flex items-center justify-between text-xs font-mono">
+            <span className="text-slate-300 flex items-center gap-1.5 font-medium">
+              <BatteryCharging className="w-3.5 h-3.5 text-emerald-400" /> Battery Margin
+            </span>
+            <span className={`font-bold font-mono ${roverBatteryPercent >= 30 ? 'text-emerald-400' : 'text-red-400'}`}>
+              <AnimatedCounter value={roverBatteryPercent} suffix="%" />
+            </span>
+          </div>
 
-        <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-          <div 
-            ref={batteryBarRef}
-            className={`h-full ${roverBatteryPercent >= 30 ? 'bg-emerald-500' : 'bg-red-500'}`}
-            style={{ width: `${roverBatteryPercent}%` }}
-          />
-        </div>
+          <div className="w-full bg-slate-800/80 h-1.5 rounded-full overflow-hidden border border-white/5">
+            <div 
+              ref={batteryBarRef}
+              className={`h-full rounded-full transition-all duration-300 ${
+                roverBatteryPercent >= 30 
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]' 
+                  : 'bg-gradient-to-r from-red-500 to-rose-400 shadow-[0_0_8px_rgba(239,68,68,0.5)]'
+              }`}
+              style={{ width: `${roverBatteryPercent}%` }}
+            />
+          </div>
 
-        <div className="flex items-center justify-between text-3xs font-mono text-slate-400 pt-1.5 border-t border-white/10">
-          <span>POWER DRAW</span>
-          <span className="text-blue-300 font-bold">2.1 kW</span>
+          <div className="flex items-center justify-between text-3xs font-mono text-slate-400 pt-1.5 border-t border-white/[0.06]">
+            <span className="flex items-center gap-1">
+              <Zap className="w-3 h-3 text-amber-400" /> POWER DRAW
+            </span>
+            <span className="text-blue-300 font-bold">2.1 kW</span>
+          </div>
         </div>
       </div>
     </nav>

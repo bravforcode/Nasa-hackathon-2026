@@ -51,24 +51,26 @@ export const IlluminationTimeline: React.FC<IlluminationTimelineProps> = ({
   };
 
   return (
-    <footer className="h-[64px] w-full bg-white/5 backdrop-blur-xl border-t border-[var(--color-border,rgba(255,255,255,0.1))] flex flex-col justify-center px-4 md:px-6 z-[var(--z-nav,30)] shrink-0 select-none shadow-lg">
+    <footer className="h-[60px] w-full bg-slate-950/80 backdrop-blur-2xl border-t border-white/[0.08] flex flex-col justify-center px-4 md:px-6 z-[var(--z-nav,30)] shrink-0 select-none shadow-[0_-4px_30px_rgba(0,0,0,0.5)]">
       {/* Top Labels */}
       <div className="flex justify-between items-center mb-1">
         <div className="flex items-center gap-2">
-          <Sun className="w-3.5 h-3.5 text-[var(--color-map-science,var(--color-warning,#f59e0b))]" />
-          <span className="font-mono text-3xs text-[var(--color-text-muted,#94a3b8)] uppercase tracking-wider font-bold">
-            POWER / ILLUMINATION TIMELINE (T-MINUS 24H TO T+24H)
+          <div className="p-0.5 rounded bg-amber-500/15 text-amber-400">
+            <Sun className="w-3.5 h-3.5 animate-pulse" />
+          </div>
+          <span className="font-mono text-3xs text-slate-300 uppercase tracking-wider font-bold">
+            Power / Illumination Timeline (T-24h to T+24h)
           </span>
         </div>
 
         <div className="flex items-center gap-3 font-mono text-3xs">
-          <span className="text-[var(--color-text-muted,#94a3b8)]">
-            SUN ELEVATION: <strong className="text-[var(--color-map-safety,var(--color-success,#10b981))]">1.4°</strong>
+          <span className="text-slate-400">
+            SUN ELEVATION: <strong className="text-emerald-400">1.4°</strong>
           </span>
-          <span className="text-[var(--color-accent-subtle,#60a5fa)] font-bold">
+          <span className="text-blue-400 font-bold">
             CURRENT ORBIT: {orbitalAngle}°
           </span>
-          <span className="text-[var(--color-text,#f1f5f9)] font-bold">
+          <span className="text-slate-100 font-bold px-2 py-0.5 rounded bg-white/5 border border-white/10">
             {currentHour === 0 ? 'T-00:00 (NOW)' : currentHour > 0 ? `T+${currentHour}:00` : `T${currentHour}:00`}
           </span>
         </div>

@@ -170,24 +170,24 @@ export const LunarMap: React.FC<LunarMapProps> = ({
 
   return (
     <div className="relative w-full h-full bg-[#030611] overflow-hidden flex flex-col select-none">
-      {/* Top Map Overlays */}
-      <div className="absolute top-3.5 left-3.5 z-30 flex flex-wrap gap-2.5 pointer-events-none">
-        <div className="bg-white/5 border border-white/10 rounded-xl px-3.5 py-1.5 backdrop-blur-xl shadow-lg flex items-center gap-2 pointer-events-auto">
+      {/* Top Map Overlays — Luxury Aerospace HUD Badges */}
+      <div className="absolute top-3 left-3 z-30 flex flex-wrap gap-2 pointer-events-none">
+        <div className="bg-slate-950/80 border border-white/[0.08] rounded-full px-3.5 py-1.5 backdrop-blur-2xl shadow-xl flex items-center gap-2 pointer-events-auto">
           <span className="font-mono text-3xs text-slate-400 font-bold tracking-wider uppercase">ANCHOR:</span>
           <span className="font-mono text-xs font-semibold text-white">
             {region ? `${region.centerLat} ${region.centerLon}` : `${Math.abs(anchorLat).toFixed(2)}°S ${anchorLon.toFixed(2)}°E`}
           </span>
-          <span className="text-3xs text-slate-400 font-mono">| Trek LOLA Tiles</span>
+          <span className="text-3xs text-slate-500 font-mono">| Trek LOLA Tiles</span>
         </div>
 
-        <div className="bg-white/5 border border-white/10 rounded-xl px-3.5 py-1.5 backdrop-blur-xl shadow-lg flex items-center gap-2 pointer-events-auto">
+        <div className="bg-slate-950/80 border border-white/[0.08] rounded-full px-3.5 py-1.5 backdrop-blur-2xl shadow-xl flex items-center gap-2 pointer-events-auto">
           <span className="font-mono text-3xs text-slate-400 font-bold tracking-wider uppercase">SOLAR INCIDENCE:</span>
           <span className="font-mono text-xs text-emerald-400 font-bold">1.4° AZ 142°</span>
         </div>
       </div>
 
       {/* Map Layer Toolbar (Left Floating Rail) wrapped in Tooltips */}
-      <div className="absolute top-16 left-3.5 z-30 flex flex-col gap-2 bg-white/5 border border-white/10 p-2 rounded-2xl backdrop-blur-2xl shadow-2xl">
+      <div className="absolute top-14 left-3 z-30 flex flex-col gap-1.5 bg-slate-950/75 border border-white/[0.08] p-1.5 rounded-2xl backdrop-blur-2xl shadow-2xl">
         <Tooltip content="Toggle RF Coverage Radii" side="right">
           <IconButton
             icon={<Radio className="w-4 h-4" />}
@@ -195,6 +195,8 @@ export const LunarMap: React.FC<LunarMapProps> = ({
             active={showCoverage}
             onClick={() => setShowCoverage(!showCoverage)}
             size="md"
+            variant="ghost"
+            className="rounded-xl transition-all"
           />
         </Tooltip>
 
@@ -205,6 +207,8 @@ export const LunarMap: React.FC<LunarMapProps> = ({
             active={showLinks}
             onClick={() => setShowLinks(!showLinks)}
             size="md"
+            variant="ghost"
+            className="rounded-xl transition-all"
           />
         </Tooltip>
 
@@ -215,6 +219,8 @@ export const LunarMap: React.FC<LunarMapProps> = ({
             active={showContours}
             onClick={() => setShowContours(!showContours)}
             size="md"
+            variant="ghost"
+            className="rounded-xl transition-all"
           />
         </Tooltip>
 
@@ -225,21 +231,25 @@ export const LunarMap: React.FC<LunarMapProps> = ({
             active={showIllumination}
             onClick={() => setShowIllumination(!showIllumination)}
             size="md"
+            variant="ghost"
+            className="rounded-xl transition-all"
           />
         </Tooltip>
       </div>
 
       {/* Zoom and Center Controls (Bottom Left) wrapped in Tooltips */}
-      <div className="absolute bottom-4 left-3.5 z-30 flex items-center gap-1.5 bg-white/5 border border-white/10 p-2 rounded-2xl backdrop-blur-2xl shadow-2xl">
+      <div className="absolute bottom-3 left-3 z-30 flex items-center gap-1.5 bg-slate-950/80 border border-white/[0.08] p-1.5 px-2.5 rounded-full backdrop-blur-2xl shadow-2xl">
         <Tooltip content="Zoom in (+20%)" side="top">
           <IconButton
             icon={<Plus className="w-3.5 h-3.5" />}
             aria-label="Zoom in"
             onClick={() => setZoomLevel(prev => Math.min(prev + 0.2, 1.8))}
             size="sm"
+            variant="ghost"
+            className="rounded-full"
           />
         </Tooltip>
-        <span className="font-mono text-xs text-slate-300 px-1.5 min-w-[36px] text-center font-semibold">
+        <span className="font-mono text-xs text-slate-200 px-1 min-w-[34px] text-center font-bold">
           {Math.round(zoomLevel * 100)}%
         </span>
         <Tooltip content="Zoom out (-20%)" side="top">
@@ -248,16 +258,18 @@ export const LunarMap: React.FC<LunarMapProps> = ({
             aria-label="Zoom out"
             onClick={() => setZoomLevel(prev => Math.max(prev - 0.2, 0.6))}
             size="sm"
+            variant="ghost"
+            className="rounded-full"
           />
         </Tooltip>
-        <div className="h-4 w-px bg-white/10 mx-1"></div>
+        <div className="h-4 w-px bg-white/10 mx-0.5" />
         <Tooltip content="Reset map scale to 100%" side="top">
           <Button
             variant="secondary"
             size="sm"
             leftIcon={<Crosshair className="w-3.5 h-3.5" />}
             onClick={() => setZoomLevel(1)}
-            className="text-xs font-mono !py-1 !px-2.5 !min-h-[32px]"
+            className="text-xs font-mono !py-0.5 !px-2.5 !min-h-[28px] rounded-full"
           >
             Reset
           </Button>

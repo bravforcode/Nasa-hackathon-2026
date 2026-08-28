@@ -378,21 +378,23 @@ function AppContent() {
               />
             </div>
 
-            {/* Central Area: Lunar Topographic Map */}
-            <div className="flex-1 relative min-h-[320px] md:min-h-[280px] rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-slate-950/60 backdrop-blur-xl">
-              <LunarMap
-                relays={currentRelays}
-                scienceSites={scienceSites}
-                deadZones={deadZones}
-                activePlan={selectedPlanId}
-                activeScenario={activeScenario}
-                isMitigationActive={isMitigationActive}
-                region={selectedRegion}
-                onMoveRelay={handleMoveRelay}
-                onMoveDeadZone={handleMoveDeadZone}
-                onDeployMitigationRelay={() => setIsMitigationActive(true)}
-                onSelectRelay={() => setIsDesignAssistOpen(true)}
-              />
+            {/* Central Area: Lunar Topographic Map — Double-Bezel Aerospace Frame */}
+            <div className="flex-1 ring-1 ring-white/10 p-1 rounded-2xl bg-white/[0.02] shadow-2xl relative min-h-[320px] md:min-h-[280px]">
+              <div className="w-full h-full rounded-xl overflow-hidden border border-white/[0.06] shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] bg-slate-950/80 backdrop-blur-2xl relative">
+                <LunarMap
+                  relays={currentRelays}
+                  scienceSites={scienceSites}
+                  deadZones={deadZones}
+                  activePlan={selectedPlanId}
+                  activeScenario={activeScenario}
+                  isMitigationActive={isMitigationActive}
+                  region={selectedRegion}
+                  onMoveRelay={handleMoveRelay}
+                  onMoveDeadZone={handleMoveDeadZone}
+                  onDeployMitigationRelay={() => setIsMitigationActive(true)}
+                  onSelectRelay={() => setIsDesignAssistOpen(true)}
+                />
+              </div>
             </div>
 
             {/* Bottom Decision & Recovery Cards */}
